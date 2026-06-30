@@ -3,8 +3,10 @@
 ## Critical
 
 - Google sign-in works after Firebase config is added.
+  - Local in-app browser status: reaches Google account chooser, then returns signed out on localhost. Re-test in normal browser and hosted domain.
 - Unauthenticated/local prototype mode does not expose cloud data.
 - Firestore rules prevent one user from reading another user's studies.
+  - Current status: Firestore rules deployed to `msr-ecosystem`.
 - Generate creates a memory entry.
 - Editing the note auto-saves the active memory entry.
 - Restoring a memory entry does not overwrite unsaved edits.
@@ -53,3 +55,11 @@
 - Rendered/generated HTML is controlled or sanitized before display.
 - Contenteditable paste behavior is tested for unexpected HTML.
 - Account deletion/export path is added before public release.
+
+## Firebase Setup
+
+- Project: `msr-ecosystem`
+- Web app: `Scripture Threads`
+- Google Auth provider: enabled
+- Firestore database: `(default)` in `nam5`
+- Rules/indexes deploy command: `pnpm firebase:deploy:firestore`

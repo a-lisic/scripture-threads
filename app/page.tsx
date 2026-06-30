@@ -1,6 +1,14 @@
 "use client";
 
-import { onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import {
+  getRedirectResult,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut,
+  type Unsubscribe,
+  type User
+} from "firebase/auth";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportDestinations } from "@/lib/exportDestinations";
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
@@ -298,6 +306,11 @@ export default function Home() {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (error) {
+      const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+      if (code.includes("popup") || code === "auth/network-request-failed") {
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
       setAuthError(error instanceof Error ? error.message : "Google sign-in failed.");
     }
   }
@@ -315,11 +328,26 @@ export default function Home() {
       setAuthReady(true);
       return;
     }
-    return onAuthStateChanged(auth, (nextUser) => {
-      if (!nextUser) clearWorkspaceState();
-      setUser(nextUser);
-      setAuthReady(true);
-    });
+    let canceled = false;
+    let unsubscribe: Unsubscribe | null = null;
+
+    void getRedirectResult(auth)
+      .catch((error) => {
+        if (!canceled) setAuthError(error instanceof Error ? error.message : "Google redirect sign-in failed.");
+      })
+      .finally(() => {
+        if (canceled) return;
+        unsubscribe = onAuthStateChanged(auth, (nextUser) => {
+          if (!nextUser) clearWorkspaceState();
+          setUser(nextUser);
+          setAuthReady(true);
+        });
+      });
+
+    return () => {
+      canceled = true;
+      unsubscribe?.();
+    };
   }, []);
 
   useEffect(() => {

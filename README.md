@@ -1,40 +1,60 @@
-# Scripture Threads Prototype
+# Scripture Threads
 
-This is a small static prototype for testing the Scripture Threads study and Obsidian export workflow before adding Bible APIs, AI generation, or direct vault writing.
+Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, and staged destination options.
 
-## Try It
+## Local Setup
 
-Open this file in a browser:
+Create `.env.local` from `.env.example` and fill in the Firebase web app config.
 
-```text
-/Users/Elizabeth/Documents/Bible Study/index.html
+```bash
+pnpm install
+pnpm dev
 ```
 
-The default passage is `2 Chronicles 19`, which uses the current fixture study and export shape.
+Local preview:
 
-## What This Prototype Tests
+```text
+http://localhost:3000
+```
 
-- Passage input
-- Translation and study-mode selection
-- Study preview
-- Editable Obsidian markdown note
-- Rich editing with markdown copy/download output
-- Copy rich text, markdown, or plain text
-- Export markdown or use the browser print flow to save as PDF
-- Copy/download export actions
-- Memory tab for generated and edited drafts before export
-- People, places, groups, story context, and event-thread fields
-- Theme vs tag distinction
-- Cross references with short connection notes
-- Clean entity display that preserves Obsidian wikilinks in the generated markdown
+## Firebase
+
+Project alias:
+
+```text
+default -> msr-ecosystem
+```
+
+Configured pieces:
+
+- Firebase web app: `Scripture Threads`
+- Firebase Auth: Google provider enabled
+- Firestore database: `(default)` in `nam5`
+- Firestore rules/indexes: deployed from this repo
+
+Deploy Firestore rules and indexes:
+
+```bash
+pnpm firebase:deploy:firestore
+```
+
+## Verification
+
+Passing locally:
+
+```bash
+pnpm typecheck
+pnpm build
+```
+
+Known follow-up:
+
+- Google sign-in reaches the Google account chooser in the in-app browser, but that embedded browser returns to localhost still signed out. Re-test in a normal browser and again after hosting, where the production auth domain can be verified.
+- `YOUVERSION_API_KEY` and `OPENAI_API_KEY` are intentionally blank until those services are connected.
 
 ## Current Limits
 
 - No live Bible API yet.
 - No AI generation yet.
-- No direct Obsidian vault writing yet.
 - Only `2 Chronicles 19` has a full fixture. Other passages generate a structural scaffold.
-
-## Next Build Step
-
-Add a generation layer that can produce the same structured data for any passage, then wire in Bible text and source retrieval carefully.
+- Direct exports to Google Drive, Notion, GoodNotes, Apple Notes, and Obsidian sync are planned but not connected.
