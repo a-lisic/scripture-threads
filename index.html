@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scripture Threads Prototype</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="control-panel" aria-label="Study setup">
+        <div class="brand-block">
+          <img class="brand-image" src="assets/scripture-threads-header.png" alt="Scripture Threads">
+          <p class="eyebrow">Trace. Study. Connect. Grow.</p>
+          <h1>Study Workspace</h1>
+        </div>
+
+        <form id="studyForm" class="study-form">
+          <label class="field">
+            <span>Passage</span>
+            <input id="passageInput" name="passage" value="2 Chronicles 19" autocomplete="off">
+          </label>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Translation</span>
+              <select id="translationInput" name="translation">
+                <option value="CSB" selected>CSB</option>
+                <option value="NLT">NLT</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Mode</span>
+              <select id="modeInput" name="mode">
+                <option selected>Guided Deep Study</option>
+                <option>Quick Read</option>
+                <option>Teaching Prep</option>
+                <option>Full Research</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="button-row">
+            <button type="submit" class="primary-action">Generate</button>
+          </div>
+          <div class="action-menus" aria-label="Copy and export actions">
+            <div class="action-menu">
+              <button type="button" id="copyMenuButton" class="secondary-action menu-trigger" aria-expanded="false">Copy</button>
+              <div class="menu-popover" id="copyMenu" hidden>
+                <button type="button" id="copyRichTextButton">Rich Text</button>
+                <button type="button" id="copyMarkdownButton">Markdown .md</button>
+                <button type="button" id="copyPlainTextButton">Plain Text</button>
+              </div>
+            </div>
+            <div class="action-menu">
+              <button type="button" id="exportMenuButton" class="secondary-action menu-trigger" aria-expanded="false">Export</button>
+              <div class="menu-popover" id="exportMenu" hidden>
+                <button type="button" id="downloadMarkdownButton">Markdown .md</button>
+                <button type="button" id="exportPdfButton">PDF</button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <section class="metadata-panel" aria-label="Generated metadata">
+          <h2>Metadata</h2>
+          <dl id="metadataList"></dl>
+        </section>
+
+      </section>
+
+      <section class="workspace-panel" aria-label="Generated study">
+        <nav class="tabs" aria-label="Output views">
+          <button type="button" class="tab-button active" data-tab="study">Study</button>
+          <button type="button" class="tab-button" data-tab="export">Edit Note</button>
+          <button type="button" class="tab-button" data-tab="entities">Entities</button>
+          <button type="button" class="tab-button" data-tab="memory">Memory <span id="memoryCount">0</span></button>
+        </nav>
+
+        <section id="studyTab" class="tab-panel active" aria-label="Study preview">
+          <div id="studyPreview" class="markdown-preview"></div>
+        </section>
+
+        <section id="exportTab" class="tab-panel" aria-label="Editable Obsidian note">
+          <p class="editor-note">Edit this like a normal note. Copy and download convert it to Obsidian markdown.</p>
+          <div id="noteEditor" class="note-editor markdown-preview" contenteditable="true" spellcheck="true"></div>
+        </section>
+
+        <section id="entitiesTab" class="tab-panel" aria-label="Entity review">
+          <div class="entity-layout">
+            <section>
+              <h2>People</h2>
+              <ul id="peopleList" class="link-list"></ul>
+            </section>
+            <section>
+              <h2>Places</h2>
+              <ul id="placesList" class="link-list"></ul>
+            </section>
+            <section>
+              <h2>Groups</h2>
+              <ul id="groupsList" class="link-list"></ul>
+            </section>
+            <section>
+              <h2>Story Context</h2>
+              <ul id="storyContextList" class="plain-list"></ul>
+            </section>
+            <section>
+              <h2>Event Threads</h2>
+              <ul id="eventThreadsList" class="link-list"></ul>
+            </section>
+            <section>
+              <h2>Themes And Tags</h2>
+              <div id="themeTagList" class="pill-group"></div>
+            </section>
+          </div>
+        </section>
+
+        <section id="memoryTab" class="tab-panel" aria-label="Study memory">
+          <div class="memory-header">
+            <h2>Study Memory</h2>
+            <p>Saved in this browser until you export what you want to keep.</p>
+          </div>
+          <ul id="memoryList" class="memory-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>
