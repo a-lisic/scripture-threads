@@ -199,7 +199,7 @@ export default function Home() {
 
   function showToast(message: string) {
     setToast(message);
-    window.setTimeout(() => setToast(""), 1800);
+    window.setTimeout(() => setToast(""), 4200);
   }
 
   async function authHeaders() {
@@ -338,7 +338,22 @@ export default function Home() {
         window.setTimeout(() => document.querySelector(".workspace-panel")?.scrollIntoView({ behavior: "smooth" }), 50);
       }
     } catch (error) {
-      showToast(error instanceof Error ? error.message : "Study generation failed.");
+      try {
+        const fallback = await generateStudyDraft({ passage, translation, mode });
+        const nextMarkdown = buildMarkdown(fallback.study);
+        setStudy(fallback.study);
+        setGenerationStatus(fallback.backendStatus);
+        setMarkdown(nextMarkdown);
+        setEditableNote(nextMarkdown);
+        rememberStudy(fallback.study, nextMarkdown);
+        showToast(
+          error instanceof Error
+            ? `Live generation failed; scaffold created. ${error.message}`
+            : "Live generation failed; scaffold created."
+        );
+      } catch {
+        showToast(error instanceof Error ? error.message : "Study generation failed.");
+      }
     } finally {
       setGenerating(false);
     }
