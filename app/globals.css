@@ -55,12 +55,13 @@ textarea {
 .auth-card {
   display: grid;
   width: min(640px, 100%);
+  justify-items: center;
   gap: 14px;
 }
 
 .auth-brand-image {
   display: block;
-  width: 100%;
+  width: min(100%, 560px);
   aspect-ratio: 2400 / 900;
   border: 1px solid rgba(176, 139, 92, 0.22);
   border-radius: 8px;
@@ -72,12 +73,14 @@ textarea {
 
 .auth-card h1 {
   font-size: 2rem;
+  text-align: center;
 }
 
 .auth-intro {
   max-width: 540px;
   color: var(--muted);
   line-height: 1.55;
+  text-align: center;
 }
 
 .auth-action {
