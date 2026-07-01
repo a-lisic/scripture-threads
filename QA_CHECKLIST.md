@@ -62,4 +62,15 @@
 - Web app: `Scripture Threads`
 - Google Auth provider: enabled
 - Firestore database: `(default)` in `nam5`
+- App Hosting backend: `scripture-threads`
+- App Hosting URL: `https://scripture-threads--msr-ecosystem.us-central1.hosted.app`
+- GitHub repo: `https://github.com/a-lisic/scripture-threads`
 - Rules/indexes deploy command: `pnpm firebase:deploy:firestore`
+
+## Hosting Launch
+
+- Attach the App Hosting backend to the GitHub repo/branch in Firebase Console.
+- Create first App Hosting rollout from `main`.
+- Verify the hosted URL loads the app shell.
+- Verify Google sign-in on hosted URL.
+- Verify Firestore study memory after hosted sign-in.

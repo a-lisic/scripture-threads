@@ -31,6 +31,9 @@ Configured pieces:
 - Firebase Auth: Google provider enabled
 - Firestore database: `(default)` in `nam5`
 - Firestore rules/indexes: deployed from this repo
+- Firebase App Hosting backend: `scripture-threads`
+- App Hosting URL: `https://scripture-threads--msr-ecosystem.us-central1.hosted.app`
+- GitHub repo: `https://github.com/a-lisic/scripture-threads`
 
 Deploy Firestore rules and indexes:
 
@@ -49,7 +52,8 @@ pnpm build
 
 Known follow-up:
 
-- Google sign-in reaches the Google account chooser in the in-app browser, but that embedded browser returns to localhost still signed out. Re-test in a normal browser and again after hosting, where the production auth domain can be verified.
+- Google sign-in reaches the Google account chooser in the in-app browser, but that embedded browser returns to localhost still signed out. Re-test in a normal browser and again on the App Hosting URL.
+- Attach the App Hosting backend to the GitHub repo/branch in Firebase Console, then create the first rollout from `main`.
 - `YOUVERSION_API_KEY` and `OPENAI_API_KEY` are intentionally blank until those services are connected.
 
 ## Current Limits
