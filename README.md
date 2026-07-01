@@ -1,6 +1,6 @@
 # Scripture Threads
 
-Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, and staged destination options.
+Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, claim-ledger/source metadata, and staged destination options.
 
 ## Local Setup
 
@@ -65,9 +65,20 @@ pnpm build
 
 Known follow-up:
 
-- Google sign-in reaches the Google account chooser in the in-app browser, but that embedded browser can be unreliable on localhost. Re-test in a normal browser and again on the Firebase Hosting URL.
+- Google sign-in and Firestore memory are verified on the Firebase Hosting URL in normal Chrome. The embedded in-app browser may still be unreliable for Google OAuth.
 - `YOUVERSION_API_KEY` and `OPENAI_API_KEY` are intentionally blank until those services are connected.
 - Live Bible/API/AI generation will need a server-side host later. The current Spark-plan build is static and client-only.
+
+## Backend Strategy
+
+The current Firebase Spark setup should stay responsible for Auth, Firestore, and static Hosting. Live Bible/API/AI generation should run behind a server-side boundary so private keys are never exposed through `NEXT_PUBLIC_` variables.
+
+Recommended next backend path:
+
+- Keep this static Firebase Hosting deployment as the web app shell.
+- Add a small server-side generation service on Vercel, Cloudflare Workers, or Firebase Functions if/when Blaze is acceptable.
+- Route all private AI/source calls through that service.
+- Keep YouVersion deferred until the app key, translation availability, and allowed usage are confirmed.
 
 ## Current Limits
 

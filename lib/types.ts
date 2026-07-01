@@ -1,10 +1,45 @@
 export type PassageMapRow = [section: string, movement: string, emphasis: string];
 export type CrossReference = [reference: string, connection: string];
+export type SourceType =
+  | "scripture"
+  | "commentary"
+  | "dictionary"
+  | "language"
+  | "background"
+  | "vault"
+  | "application";
+
+export type EvidenceConfidence = "clear" | "strong" | "supported" | "possible" | "application";
+
+export type StudySource = {
+  id: string;
+  label: string;
+  type: SourceType;
+  reference?: string;
+  url?: string;
+  note?: string;
+};
+
+export type ClaimLedgerEntry = {
+  claim: string;
+  evidence: string;
+  sourceType: SourceType;
+  confidence: EvidenceConfidence;
+};
+
+export type TranslationNote = {
+  reference: string;
+  note: string;
+  translations: string[];
+};
 
 export type VerseNote = {
   reference: string;
   note: string;
   details: string[];
+  guardrails?: string[];
+  application?: string[];
+  crossReferences?: CrossReference[];
   keep: string;
 };
 
@@ -13,6 +48,9 @@ export type Study = {
   translation: string;
   mode: string;
   book: string;
+  sourceProfile: string;
+  generatedAt: string;
+  generationStatus: "fixture" | "scaffold" | "generated";
   bookLinks: string[];
   people: string[];
   places: string[];
@@ -28,8 +66,11 @@ export type Study = {
   passageMap: PassageMapRow[];
   verseNotes: VerseNote[];
   crossReferences: CrossReference[];
+  translationNotes: TranslationNote[];
+  claimLedger: ClaimLedgerEntry[];
   questions: string[];
   application: string[];
+  sourceRecords: StudySource[];
   sourceNotes: string[];
 };
 

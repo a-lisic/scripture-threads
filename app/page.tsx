@@ -12,6 +12,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { exportDestinations } from "@/lib/exportDestinations";
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
+import { generateStudyDraft, getGenerationBackendStatus, type GenerationBackendStatus } from "@/lib/generationPipeline";
 import { buildMarkdown, escapeHtml, extractPreamble, renderMarkdownPreview, wikilinkLabel } from "@/lib/markdown";
 import {
   createMemoryEntry,
@@ -111,6 +112,7 @@ export default function Home() {
   const [user, setUser] = useState<User | typeof localUser | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [generationStatus, setGenerationStatus] = useState<GenerationBackendStatus>(getGenerationBackendStatus());
   const [menuOpen, setMenuOpen] = useState<"copy" | "export" | null>(null);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
@@ -211,8 +213,10 @@ export default function Home() {
   async function handleGenerate() {
     clearPendingMemorySave();
     await saveCurrentMemory();
-    const nextStudy = generateStudy(passage, translation, mode);
+    const result = await generateStudyDraft({ passage, translation, mode });
+    const nextStudy = result.study;
     const nextMarkdown = buildMarkdown(nextStudy);
+    setGenerationStatus(result.backendStatus);
     setStudy(nextStudy);
     setMarkdown(nextMarkdown);
     setEditableNote(nextMarkdown);
@@ -240,6 +244,7 @@ export default function Home() {
       const nextMarkdown = currentMarkdownFromEditor();
       setMarkdown(nextMarkdown);
       await navigator.clipboard.writeText(nextMarkdown);
+      setMenuOpen(null);
       showToast("Markdown copied.");
     } catch {
       showToast("Copy failed. Try Download MD.");
@@ -258,6 +263,7 @@ export default function Home() {
           })
         ]);
       } else await navigator.clipboard.writeText(plain);
+      setMenuOpen(null);
       showToast("Rich text copied.");
     } catch {
       showToast("Rich text copy failed.");
@@ -267,6 +273,7 @@ export default function Home() {
   async function copyPlainText() {
     try {
       await navigator.clipboard.writeText(editorRef.current?.innerText.trim() || "");
+      setMenuOpen(null);
       showToast("Plain text copied.");
     } catch {
       showToast("Plain text copy failed.");
@@ -285,10 +292,12 @@ export default function Home() {
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
+    setMenuOpen(null);
     showToast("Markdown download started.");
   }
 
   function exportPdf() {
+    setMenuOpen(null);
     document.body.classList.add("printing-note");
     window.setTimeout(() => {
       window.print();
@@ -381,9 +390,12 @@ export default function Home() {
         ["Book", study.book],
         ["Translation", study.translation],
         ["Mode", study.mode],
+        ["Source Profile", study.sourceProfile],
+        ["Generation", study.generationStatus],
         ["Tags", study.tags.join(", ") || "none"],
         ["Themes", study.themes.length.toString()],
-        ["Entities", study.entityLinks.length.toString()]
+        ["Entities", study.entityLinks.length.toString()],
+        ["Claims", study.claimLedger.length.toString()]
       ]
     : [];
 
@@ -454,6 +466,11 @@ export default function Home() {
               Generate
             </button>
           </div>
+
+          <section className="generation-status" aria-label="Generation status">
+            <strong>{generationStatus.mode === "static-prototype" ? "Prototype generation" : "Server generation"}</strong>
+            <span>{generationStatus.ready ? "Live generation ready" : generationStatus.missing.join(", ")}</span>
+          </section>
 
           <div className="action-menus" aria-label="Copy and export actions">
             <div className="action-menu">

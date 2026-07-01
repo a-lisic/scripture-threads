@@ -14,10 +14,11 @@
 
 The project now has a Next.js app shell with:
 
-- Firebase-ready Google Auth.
+- Hosted Firebase Google Auth verified on `gnco-scripturethreads.firebaseapp.com`.
 - Local prototype mode when Firebase env vars are missing.
 - Per-user Study Memory abstraction.
 - Firestore security rules for private user-owned data.
+- Generation-ready study data with source records and claim ledger fields.
 - Mobile-responsive workspace.
 - Export destination registry for Markdown, PDF, Obsidian, iCloud, Google Drive, Notion, GoodNotes, Apple Notes, Google Docs, and Word/DOCX.
 
@@ -91,7 +92,7 @@ bibleEntities/{entityId}
 
 ## YouVersion API Next Step
 
-Build the app first, then choose REST or SDK based on the YouVersion Platform app registration and docs. The app should use a server route for all YouVersion calls so the app key is never exposed in browser code.
+Deferred by decision. When resumed, choose REST or SDK based on the YouVersion Platform app registration and docs. The app should use a server route for all YouVersion calls so the app key is never exposed in browser code.
 
 Server-only env var:
 
@@ -101,7 +102,12 @@ YOUVERSION_API_KEY=
 
 ## AI Generation Next Step
 
-Generation should happen through server routes, not the browser. Store:
+Generation should happen through a server-side boundary, not the browser. The current Spark-plan Firebase Hosting build is static, so use one of these paths:
+
+1. Keep Firebase Spark for Auth/Firestore/Hosting and add a small generation service on Vercel or Cloudflare Workers.
+2. Upgrade Firebase to Blaze later and use Firebase Functions/App Hosting for same-platform server routes.
+
+Store:
 
 - prompt version
 - selected passage
@@ -123,8 +129,8 @@ The app should keep the existing claim discipline:
 2. Firebase Auth signs in with Google locally.
 3. Firestore Study Memory syncs across devices.
 4. Hosted deployment works on mobile and desktop.
-5. Server route generates scaffolded studies.
-6. YouVersion Bible text integration.
-7. AI generation with source bundles.
+5. Server-side generation service accepts passage/mode/translation and returns structured study JSON.
+6. AI generation with source bundles.
+7. YouVersion Bible text integration after API setup resumes.
 8. Export connector expansion.
 9. Full QA and refactor pass.

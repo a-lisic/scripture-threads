@@ -22,6 +22,10 @@ function detailList(details: string[] = []) {
   return `\n\n${details.map((detail) => `- ${detail}`).join("\n")}`;
 }
 
+function markdownTableCell(value: string) {
+  return value.replace(/\|/g, "\\|").replace(/\n/g, " ");
+}
+
 export function buildMarkdown(study: Study) {
   const passageRows = study.passageMap
     .map(([section, movement, emphasis]) => `| ${section} | ${movement} | ${emphasis} |`)
@@ -34,6 +38,29 @@ export function buildMarkdown(study: Study) {
   const crossRefs = study.crossReferences.length
     ? study.crossReferences.map(([ref, connection]) => `- ${ref} - ${connection}`).join("\n")
     : "- Add cross references with connection notes.";
+  const translationNotes = study.translationNotes.length
+    ? study.translationNotes
+        .map((item) => `- ${item.reference} (${item.translations.join(", ")}) - ${item.note}`)
+        .join("\n")
+    : "- Add selective translation notes only when wording differences help the study.";
+  const claimLedger = study.claimLedger.length
+    ? study.claimLedger
+        .map(
+          (item) =>
+            `| ${markdownTableCell(item.claim)} | ${markdownTableCell(item.evidence)} | ${item.sourceType} | ${item.confidence} |`
+        )
+        .join("\n")
+    : "| Add claim | Add evidence | scripture | possible |";
+  const sourceRecords = study.sourceRecords.length
+    ? study.sourceRecords
+        .map((item) => {
+          const ref = item.reference ? ` ${item.reference}.` : "";
+          const url = item.url ? ` ${item.url}` : "";
+          const note = item.note ? ` ${item.note}` : "";
+          return `- ${item.label} (${item.type}).${ref}${url}${note}`.trim();
+        })
+        .join("\n")
+    : "- Add source records.";
   const linkedNotes = study.entityLinks.length
     ? [
         ...study.entityLinks.map((link) => `- ${link}`),
@@ -41,7 +68,7 @@ export function buildMarkdown(study: Study) {
       ].join("\n")
     : "- No entity links suggested yet.";
 
-  return `---\ntype: bible-study\npassage: "${escapeYamlString(study.passage)}"\ntranslation: "${escapeYamlString(study.translation)}"\nmode: "${escapeYamlString(study.mode)}"\ndate: ${new Date().toISOString().slice(0, 10)}\nbook: "${escapeYamlString(study.book)}"\n${yamlField("book_links", study.bookLinks)}\n${yamlField("people", study.people)}\n${yamlField("places", study.places)}\n${yamlField("groups", study.groups)}\n${yamlField("story_context", study.storyContext)}\n${yamlField("event_threads", study.eventThreads)}\n${yamlField("entity_links", study.entityLinks)}\n${yamlField("themes", study.themes)}\n${yamlField("tags", study.tags)}\n${yamlField("sources", study.sources)}\nstatus: draft\n---\n\n[[A - Faith]] [[R - Study Notes]] ${study.bookLinks.join(" ")}\n\n# ${study.passage} Study Notes\n\n## Big Idea\n\n${study.bigIdea}\n\n## Context\n\n${study.context.join("\n\n")}\n\n## Passage Map\n\n| Section | Movement | Main Emphasis |\n|---|---|---|\n${passageRows}\n\n## Verse Notes\n\n${verseNotes}\n\n## Big Takeaways\n\n${simpleList(study.verseNotes.map((item) => item.keep))}\n\n## Questions To Revisit\n\n${simpleList(study.questions)}\n\n## Linked Notes\n\n${linkedNotes}\n\n## Vault Connections\n\nNo vault connections reviewed in this prototype run.\n\n## Cross-References\n\n${crossRefs}\n\n## Source Notes\n\n${simpleList(study.sourceNotes)}\n`;
+  return `---\ntype: bible-study\npassage: "${escapeYamlString(study.passage)}"\ntranslation: "${escapeYamlString(study.translation)}"\nmode: "${escapeYamlString(study.mode)}"\ndate: ${new Date().toISOString().slice(0, 10)}\nbook: "${escapeYamlString(study.book)}"\nsource_profile: "${escapeYamlString(study.sourceProfile)}"\ngeneration_status: "${escapeYamlString(study.generationStatus)}"\n${yamlField("book_links", study.bookLinks)}\n${yamlField("people", study.people)}\n${yamlField("places", study.places)}\n${yamlField("groups", study.groups)}\n${yamlField("story_context", study.storyContext)}\n${yamlField("event_threads", study.eventThreads)}\n${yamlField("entity_links", study.entityLinks)}\n${yamlField("themes", study.themes)}\n${yamlField("tags", study.tags)}\n${yamlField("sources", study.sources)}\nstatus: draft\n---\n\n[[A - Faith]] [[R - Study Notes]] ${study.bookLinks.join(" ")}\n\n# ${study.passage} Study Notes\n\n## Big Idea\n\n${study.bigIdea}\n\n## Context\n\n${study.context.join("\n\n")}\n\n## Passage Map\n\n| Section | Movement | Main Emphasis |\n|---|---|---|\n${passageRows}\n\n## Verse Notes\n\n${verseNotes}\n\n## Big Takeaways\n\n${simpleList(study.verseNotes.map((item) => item.keep))}\n\n## Questions To Revisit\n\n${simpleList(study.questions)}\n\n## Linked Notes\n\n${linkedNotes}\n\n## Vault Connections\n\nNo vault connections reviewed in this prototype run.\n\n## Cross-References\n\n${crossRefs}\n\n## Translation Notes\n\n${translationNotes}\n\n## Claim Ledger\n\n| Claim | Evidence | Source Type | Confidence |\n|---|---|---|---|\n${claimLedger}\n\n## Source Records\n\n${sourceRecords}\n\n## Source Notes\n\n${simpleList(study.sourceNotes)}\n`;
 }
 
 export function escapeHtml(value: string) {

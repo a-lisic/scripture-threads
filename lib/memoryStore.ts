@@ -29,6 +29,25 @@ function toFirestoreMemoryEntry(entry: MemoryEntry) {
   };
 }
 
+function withStudyDefaults(study: Study): Study {
+  return {
+    ...study,
+    sourceProfile: study.sourceProfile || "Scripture-first evangelical, non-denominational, continuationist-friendly",
+    generatedAt: study.generatedAt || new Date().toISOString(),
+    generationStatus: study.generationStatus || "fixture",
+    translationNotes: study.translationNotes || [],
+    claimLedger: study.claimLedger || [],
+    sourceRecords: study.sourceRecords || []
+  };
+}
+
+function withMemoryDefaults(entry: MemoryEntry): MemoryEntry {
+  return {
+    ...entry,
+    study: withStudyDefaults(entry.study)
+  };
+}
+
 function fromFirestoreMemoryEntry(data: Record<string, unknown>): MemoryEntry | null {
   let study = data.study;
   if (typeof data.studyJson === "string") {
@@ -42,7 +61,7 @@ function fromFirestoreMemoryEntry(data: Record<string, unknown>): MemoryEntry | 
   const { studyJson: _studyJson, ...rest } = data;
   return {
     ...(rest as Omit<MemoryEntry, "study">),
-    study: study as Study
+    study: withStudyDefaults(study as Study)
   };
 }
 
@@ -68,7 +87,10 @@ export function readLocalMemory(ownerId: string): MemoryEntry[] {
   try {
     const parsed = JSON.parse(localStorage.getItem(LOCAL_MEMORY_KEY) || "[]") as MemoryEntry[];
     return Array.isArray(parsed)
-      ? parsed.filter((entry) => entry.ownerId === ownerId && entry.markdown && entry.study).slice(0, MAX_MEMORY_ENTRIES)
+      ? parsed
+          .filter((entry) => entry.ownerId === ownerId && entry.markdown && entry.study)
+          .map(withMemoryDefaults)
+          .slice(0, MAX_MEMORY_ENTRIES)
       : [];
   } catch {
     return [];

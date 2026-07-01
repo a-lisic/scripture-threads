@@ -224,6 +224,26 @@ button:disabled {
   background: var(--accent-strong);
 }
 
+.generation-status {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(99, 117, 105, 0.18);
+  border-radius: 8px;
+  background: rgba(99, 117, 105, 0.08);
+  padding: 9px 10px;
+}
+
+.generation-status strong {
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+}
+
+.generation-status span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .auth-panel {
   display: grid;
   gap: 10px;
@@ -291,6 +311,7 @@ button:disabled {
 
 .metadata-panel dd {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .workspace-panel {
@@ -690,13 +711,14 @@ button:disabled {
   }
 
   .study-form {
-    grid-template-columns: minmax(220px, 1.2fr) minmax(260px, 1fr);
+    grid-template-columns: minmax(220px, 1.15fr) minmax(260px, 1fr);
     align-items: end;
   }
 
   .study-form .field:first-child,
   .study-form .button-row,
-  .study-form .action-menus {
+  .study-form .action-menus,
+  .study-form .generation-status {
     grid-column: auto;
   }
 
@@ -729,7 +751,8 @@ button:disabled {
   }
 
   .brand-image {
-    width: min(100%, 240px);
+    width: 100%;
+    max-width: 320px;
     grid-row: auto;
   }
 
@@ -740,9 +763,17 @@ button:disabled {
   .field-grid,
   .button-row,
   .action-menus,
+  .generation-status,
   .study-form,
   .entity-layout {
     grid-template-columns: 1fr;
+  }
+
+  .menu-popover {
+    position: static;
+    width: 100%;
+    margin-top: 6px;
+    box-shadow: none;
   }
 
   input,
@@ -793,7 +824,7 @@ button:disabled {
   }
 
   .metadata-row {
-    grid-template-columns: 86px minmax(0, 1fr);
+    grid-template-columns: 96px minmax(0, 1fr);
     font-size: 0.84rem;
     gap: 6px 10px;
   }

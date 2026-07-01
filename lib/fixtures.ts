@@ -5,6 +5,9 @@ export const fixture: Study = {
   translation: "CSB",
   mode: "Guided Deep Study",
   book: "2 Chronicles",
+  sourceProfile: "Scripture-first evangelical, non-denominational, continuationist-friendly",
+  generatedAt: "2026-06-30",
+  generationStatus: "fixture",
   bookLinks: ["[[2 Chronicles]]"],
   people: ["[[Jehoshaphat]]", "[[Ahab]]", "[[Jehu son of Hanani]]"],
   places: ["[[Jerusalem]]", "[[Ramoth-gilead]]"],
@@ -103,6 +106,40 @@ export const fixture: Study = {
     ["Psalm 82", "shows God as the ultimate judge over earthly judges."],
     ["Psalm 97:10", "supports Jehu's rebuke about loving the Lord and rejecting evil."]
   ],
+  translationNotes: [
+    {
+      reference: "2 Chronicles 19:6-7",
+      note:
+        "Translation comparison should focus on the repeated idea that the judges answer to the Lord, not merely to a human king.",
+      translations: ["CSB", "NLT"]
+    }
+  ],
+  claimLedger: [
+    {
+      claim: "Jehoshaphat's safe return is mercy, not approval of the Ahab alliance.",
+      evidence: "2 Chronicles 18:31; 2 Chronicles 19:1-3",
+      sourceType: "scripture",
+      confidence: "strong"
+    },
+    {
+      claim: "The chapter moves from personal correction to public reform.",
+      evidence: "2 Chronicles 19:2-11",
+      sourceType: "scripture",
+      confidence: "clear"
+    },
+    {
+      claim: "Judah's judges are accountable to God's authority, not just human systems.",
+      evidence: "2 Chronicles 19:6-7; Deuteronomy 16:18-20; Psalm 82",
+      sourceType: "scripture",
+      confidence: "strong"
+    },
+    {
+      claim: "Modern application should emphasize correction leading to obedience, not shame.",
+      evidence: "2 Chronicles 19:4 and the movement after Jehu's rebuke",
+      sourceType: "application",
+      confidence: "application"
+    }
+  ],
   questions: [
     "How does Jehoshaphat's response to correction compare with other kings in Chronicles?",
     "What does this chapter teach about the relationship between private devotion and public responsibility?",
@@ -113,6 +150,27 @@ export const fixture: Study = {
     "What responsibility has God given me that needs to be handled more consciously before Him?",
     "Where am I tempted toward partiality, people-pleasing, or avoiding hard truth?",
     "What would courageous faithfulness look like in one decision today?"
+  ],
+  sourceRecords: [
+    {
+      id: "scripture-2-chronicles-17-19",
+      label: "2 Chronicles 17-19",
+      type: "scripture",
+      reference: "2 Chronicles 17-19"
+    },
+    {
+      id: "scripture-deuteronomy-16",
+      label: "Deuteronomy 16:18-20",
+      type: "scripture",
+      reference: "Deuteronomy 16:18-20"
+    },
+    {
+      id: "commentary-enduring-word-2-chronicles-19",
+      label: "Enduring Word commentary on 2 Chronicles 19",
+      type: "commentary",
+      url: "https://enduringword.com/bible-commentary/2-chronicles-19/",
+      note: "Summarized only; commentary is secondary to Scripture."
+    }
   ],
   sourceNotes: [
     "Scripture references: 2 Chronicles 17-19; Deuteronomy 16:18-20; Psalm 82; Psalm 97:10.",

@@ -16,7 +16,8 @@ export function generateStudy(passage: string, translation: string, mode: string
     return {
       ...fixture,
       translation,
-      mode
+      mode,
+      generatedAt: new Date().toISOString()
     };
   }
 
@@ -26,6 +27,9 @@ export function generateStudy(passage: string, translation: string, mode: string
     translation,
     mode,
     book,
+    sourceProfile: "Scripture-first evangelical, non-denominational, continuationist-friendly",
+    generatedAt: new Date().toISOString(),
+    generationStatus: "scaffold",
     bookLinks: [`[[${book}]]`],
     people: [],
     places: [],
@@ -52,8 +56,25 @@ export function generateStudy(passage: string, translation: string, mode: string
       }
     ],
     crossReferences: [],
+    translationNotes: [],
+    claimLedger: [
+      {
+        claim: "This is a placeholder study scaffold, not a completed interpretation.",
+        evidence: "No Bible text, commentary, or AI generation has been queried for this passage yet.",
+        sourceType: "application",
+        confidence: "possible"
+      }
+    ],
     questions: ["What should this passage help me notice, obey, or revisit?"],
     application: ["What is one faithful response to this passage today?"],
+    sourceRecords: [
+      {
+        id: "prototype-scaffold",
+        label: "Prototype scaffold",
+        type: "application",
+        note: "No external source was queried."
+      }
+    ],
     sourceNotes: ["Prototype scaffold only. No external Bible or commentary sources were queried."]
   };
 }
