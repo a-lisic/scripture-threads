@@ -104,9 +104,32 @@ export type AdminUserSummary = {
   studyCount: number;
 };
 
+export type AdminSettings = {
+  appStatus: "prototype" | "private_beta" | "live";
+  defaultTranslation: "CSB" | "NLT";
+  defaultMode: "Quick Read" | "Guided Deep Study" | "Teaching Prep" | "Full Research";
+  sourceProfile: string;
+  publicSignupEnabled: boolean;
+  aiGenerationEnabled: boolean;
+  youVersionEnabled: boolean;
+  maintenanceMessage: string;
+  updatedAt?: string;
+  updatedBy?: string;
+};
+
+export type AdminActivityLog = {
+  id: string;
+  action: string;
+  actorEmail: string;
+  createdAt: string;
+  detail: string;
+};
+
 export type AdminSnapshot = {
   superAdminEmails: string[];
   users: AdminUserSummary[];
+  settings: AdminSettings;
+  activity: AdminActivityLog[];
   totalUsers: number;
   totalStudies: number;
   loadedAt: string;

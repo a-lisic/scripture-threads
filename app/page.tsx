@@ -10,7 +10,13 @@ import {
   type User
 } from "firebase/auth";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isSuperAdminEmail, loadAdminSnapshot, upsertUserProfile } from "@/lib/admin";
+import {
+  DEFAULT_ADMIN_SETTINGS,
+  isSuperAdminEmail,
+  loadAdminSnapshot,
+  saveAdminSettings,
+  upsertUserProfile
+} from "@/lib/admin";
 import { exportDestinations } from "@/lib/exportDestinations";
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import { generateStudyDraft, getGenerationBackendStatus, type GenerationBackendStatus } from "@/lib/generationPipeline";
@@ -23,7 +29,7 @@ import {
   saveMemoryEntry
 } from "@/lib/memoryStore";
 import { generateStudy } from "@/lib/study";
-import type { AdminSnapshot, MemoryEntry, Study } from "@/lib/types";
+import type { AdminSettings, AdminSnapshot, MemoryEntry, Study } from "@/lib/types";
 
 type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "admin";
 
@@ -116,7 +122,9 @@ export default function Home() {
   const [generationStatus, setGenerationStatus] = useState<GenerationBackendStatus>(getGenerationBackendStatus());
   const [menuOpen, setMenuOpen] = useState<"copy" | "export" | null>(null);
   const [adminSnapshot, setAdminSnapshot] = useState<AdminSnapshot | null>(null);
+  const [adminSettings, setAdminSettings] = useState<AdminSettings>(DEFAULT_ADMIN_SETTINGS);
   const [adminLoading, setAdminLoading] = useState(false);
+  const [adminSaving, setAdminSaving] = useState(false);
   const [adminError, setAdminError] = useState("");
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
@@ -332,6 +340,7 @@ export default function Home() {
   async function signOutUser() {
     clearWorkspaceState();
     setAdminSnapshot(null);
+    setAdminSettings(DEFAULT_ADMIN_SETTINGS);
     setAdminError("");
     setActiveTab("study");
     const auth = getFirebaseAuth();
@@ -343,12 +352,29 @@ export default function Home() {
     setAdminLoading(true);
     setAdminError("");
     try {
-      setAdminSnapshot(await loadAdminSnapshot());
+      const snapshot = await loadAdminSnapshot();
+      setAdminSnapshot(snapshot);
+      setAdminSettings(snapshot.settings);
       showToast("Admin panel refreshed.");
     } catch (error) {
       setAdminError(error instanceof Error ? error.message : "Admin panel could not load.");
     } finally {
       setAdminLoading(false);
+    }
+  }
+
+  async function handleSaveAdminSettings() {
+    if (!isSuperAdmin || !user?.email) return;
+    setAdminSaving(true);
+    setAdminError("");
+    try {
+      await saveAdminSettings(adminSettings, user.email);
+      setAdminSnapshot(await loadAdminSnapshot());
+      showToast("Admin settings saved.");
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Admin settings could not be saved.");
+    } finally {
+      setAdminSaving(false);
     }
   }
 
@@ -410,6 +436,7 @@ export default function Home() {
   useEffect(() => {
     if (!isSuperAdmin) {
       setAdminSnapshot(null);
+      setAdminSettings(DEFAULT_ADMIN_SETTINGS);
       if (activeTab === "admin") setActiveTab("study");
       return;
     }
@@ -748,11 +775,16 @@ export default function Home() {
               <div className="admin-header">
                 <div>
                   <h2>Admin Control Panel</h2>
-                  <p>Super admins can review users, study memory counts, and current platform configuration.</p>
+                  <p>Manage platform status, feature flags, source posture, super admin access, and user visibility.</p>
                 </div>
-                <button type="button" className="secondary-action compact-action" onClick={() => void refreshAdminSnapshot()}>
-                  {adminLoading ? "Refreshing..." : "Refresh"}
-                </button>
+                <div className="admin-actions">
+                  <button type="button" className="secondary-action compact-action" onClick={() => void refreshAdminSnapshot()}>
+                    {adminLoading ? "Refreshing..." : "Refresh"}
+                  </button>
+                  <button type="button" className="primary-action compact-action" onClick={() => void handleSaveAdminSettings()}>
+                    {adminSaving ? "Saving..." : "Save Settings"}
+                  </button>
+                </div>
               </div>
 
               <div className="admin-metrics">
@@ -768,18 +800,133 @@ export default function Home() {
                   <span>Super admins</span>
                   <strong>{adminSnapshot?.superAdminEmails.length ?? 2}</strong>
                 </article>
+                <article>
+                  <span>App status</span>
+                  <strong>{adminSettings.appStatus.replace("_", " ")}</strong>
+                </article>
               </div>
 
               {adminError ? <p className="admin-error">{adminError}</p> : null}
 
-              <section className="admin-section">
-                <h3>Super Admin Accounts</h3>
-                <ul className="plain-list">
-                  {(adminSnapshot?.superAdminEmails || ["alexlisic@gmail.com", "bethlisic@gmail.com"]).map((email) => (
-                    <li key={email}>{email}</li>
-                  ))}
-                </ul>
-              </section>
+              <div className="admin-grid">
+                <section className="admin-section">
+                  <h3>Platform Settings</h3>
+                  <div className="admin-form-grid">
+                    <label className="field">
+                      <span>App Status</span>
+                      <select
+                        value={adminSettings.appStatus}
+                        onChange={(event) =>
+                          setAdminSettings({ ...adminSettings, appStatus: event.target.value as AdminSettings["appStatus"] })
+                        }
+                      >
+                        <option value="prototype">Prototype</option>
+                        <option value="private_beta">Private beta</option>
+                        <option value="live">Live</option>
+                      </select>
+                    </label>
+                    <label className="field">
+                      <span>Default Translation</span>
+                      <select
+                        value={adminSettings.defaultTranslation}
+                        onChange={(event) =>
+                          setAdminSettings({
+                            ...adminSettings,
+                            defaultTranslation: event.target.value as AdminSettings["defaultTranslation"]
+                          })
+                        }
+                      >
+                        <option value="CSB">CSB</option>
+                        <option value="NLT">NLT</option>
+                      </select>
+                    </label>
+                    <label className="field admin-wide-field">
+                      <span>Default Mode</span>
+                      <select
+                        value={adminSettings.defaultMode}
+                        onChange={(event) =>
+                          setAdminSettings({ ...adminSettings, defaultMode: event.target.value as AdminSettings["defaultMode"] })
+                        }
+                      >
+                        <option>Quick Read</option>
+                        <option>Guided Deep Study</option>
+                        <option>Teaching Prep</option>
+                        <option>Full Research</option>
+                      </select>
+                    </label>
+                    <label className="field admin-wide-field">
+                      <span>Maintenance Message</span>
+                      <textarea
+                        value={adminSettings.maintenanceMessage}
+                        onChange={(event) => setAdminSettings({ ...adminSettings, maintenanceMessage: event.target.value })}
+                        placeholder="Optional message for admins to track launch notes or temporary issues."
+                      />
+                    </label>
+                  </div>
+                </section>
+
+                <section className="admin-section">
+                  <h3>Feature Flags</h3>
+                  <div className="admin-toggle-list">
+                    {[
+                      ["publicSignupEnabled", "Public signup", "Allow users outside the initial private group."],
+                      ["aiGenerationEnabled", "AI generation", "Enable live AI-backed study generation once the backend exists."],
+                      ["youVersionEnabled", "YouVersion", "Enable YouVersion Bible text once API setup resumes."]
+                    ].map(([key, label, description]) => (
+                      <label className="admin-toggle" key={key}>
+                        <input
+                          type="checkbox"
+                          checked={Boolean(adminSettings[key as keyof AdminSettings])}
+                          onChange={(event) =>
+                            setAdminSettings({
+                              ...adminSettings,
+                              [key]: event.target.checked
+                            })
+                          }
+                        />
+                        <span>
+                          <strong>{label}</strong>
+                          <small>{description}</small>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="admin-section">
+                  <h3>Source And Doctrine Posture</h3>
+                  <label className="field">
+                    <span>Source Profile</span>
+                    <textarea
+                      value={adminSettings.sourceProfile}
+                      onChange={(event) => setAdminSettings({ ...adminSettings, sourceProfile: event.target.value })}
+                    />
+                  </label>
+                  <div className="admin-status-list">
+                    <div>
+                      <strong>Bible API</strong>
+                      <span>Deferred until YouVersion setup resumes.</span>
+                    </div>
+                    <div>
+                      <strong>Generation Backend</strong>
+                      <span>Not connected. Static Firebase Hosting is still key-safe.</span>
+                    </div>
+                    <div>
+                      <strong>Claim Discipline</strong>
+                      <span>Claim ledger and source records are in the study data model.</span>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="admin-section">
+                  <h3>Super Admin Accounts</h3>
+                  <ul className="plain-list">
+                    {(adminSnapshot?.superAdminEmails || ["alexlisic@gmail.com", "bethlisic@gmail.com"]).map((email) => (
+                      <li key={email}>{email}</li>
+                    ))}
+                  </ul>
+                </section>
+              </div>
 
               <section className="admin-section">
                 <h3>Users</h3>
@@ -813,6 +960,25 @@ export default function Home() {
                       )}
                     </tbody>
                   </table>
+                </div>
+              </section>
+
+              <section className="admin-section">
+                <h3>Admin Activity</h3>
+                <div className="admin-activity-list">
+                  {adminSnapshot?.activity.length ? (
+                    adminSnapshot.activity.map((item) => (
+                      <article key={item.id}>
+                        <strong>{item.action.replace("_", " ")}</strong>
+                        <span>
+                          {item.actorEmail} · {item.createdAt ? formatMemoryDate(item.createdAt) : "unknown"}
+                        </span>
+                        <p>{item.detail}</p>
+                      </article>
+                    ))
+                  ) : (
+                    <p>No admin activity logged yet.</p>
+                  )}
                 </div>
               </section>
             </div>
