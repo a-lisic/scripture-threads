@@ -34,6 +34,7 @@ Configured pieces:
 
 - Firebase web app: `Scripture Threads`
 - Firebase Auth: Google provider enabled
+- Super admin emails: `alexlisic@gmail.com`, `bethlisic@gmail.com`
 - Firestore database: `(default)`
 - Firestore rules/indexes: deployed from this repo
 - Firebase Hosting site: `gnco-scripturethreads`

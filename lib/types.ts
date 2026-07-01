@@ -94,3 +94,20 @@ export type ExportDestination = {
   description: string;
   status: "available" | "planned" | "requires-connection";
 };
+
+export type AdminUserSummary = {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: "super_admin" | "user";
+  updatedAt?: string;
+  studyCount: number;
+};
+
+export type AdminSnapshot = {
+  superAdminEmails: string[];
+  users: AdminUserSummary[];
+  totalUsers: number;
+  totalStudies: number;
+  loadedAt: string;
+};

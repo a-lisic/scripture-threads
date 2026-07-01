@@ -10,6 +10,7 @@ import {
   type User
 } from "firebase/auth";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isSuperAdminEmail, loadAdminSnapshot, upsertUserProfile } from "@/lib/admin";
 import { exportDestinations } from "@/lib/exportDestinations";
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import { generateStudyDraft, getGenerationBackendStatus, type GenerationBackendStatus } from "@/lib/generationPipeline";
@@ -22,9 +23,9 @@ import {
   saveMemoryEntry
 } from "@/lib/memoryStore";
 import { generateStudy } from "@/lib/study";
-import type { MemoryEntry, Study } from "@/lib/types";
+import type { AdminSnapshot, MemoryEntry, Study } from "@/lib/types";
 
-type TabId = "study" | "export" | "entities" | "memory" | "destinations";
+type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "admin";
 
 const localUser = {
   uid: "local",
@@ -114,11 +115,15 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   const [generationStatus, setGenerationStatus] = useState<GenerationBackendStatus>(getGenerationBackendStatus());
   const [menuOpen, setMenuOpen] = useState<"copy" | "export" | null>(null);
+  const [adminSnapshot, setAdminSnapshot] = useState<AdminSnapshot | null>(null);
+  const [adminLoading, setAdminLoading] = useState(false);
+  const [adminError, setAdminError] = useState("");
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
 
   const ownerId = user?.uid || "local";
   const firebaseConfigured = isFirebaseConfigured();
+  const isSuperAdmin = firebaseConfigured && isSuperAdminEmail(user?.email);
   const previewHtml = useMemo(() => renderMarkdownPreview(markdown), [markdown]);
 
   function showToast(message: string) {
@@ -326,8 +331,25 @@ export default function Home() {
 
   async function signOutUser() {
     clearWorkspaceState();
+    setAdminSnapshot(null);
+    setAdminError("");
+    setActiveTab("study");
     const auth = getFirebaseAuth();
     if (auth) await signOut(auth);
+  }
+
+  async function refreshAdminSnapshot() {
+    if (!isSuperAdmin) return;
+    setAdminLoading(true);
+    setAdminError("");
+    try {
+      setAdminSnapshot(await loadAdminSnapshot());
+      showToast("Admin panel refreshed.");
+    } catch (error) {
+      setAdminError(error instanceof Error ? error.message : "Admin panel could not load.");
+    } finally {
+      setAdminLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -348,6 +370,7 @@ export default function Home() {
         if (canceled) return;
         unsubscribe = onAuthStateChanged(auth, (nextUser) => {
           if (!nextUser) clearWorkspaceState();
+          else void upsertUserProfile(nextUser);
           setUser(nextUser);
           setAuthReady(true);
         });
@@ -383,6 +406,16 @@ export default function Home() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady, user?.uid]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) {
+      setAdminSnapshot(null);
+      if (activeTab === "admin") setActiveTab("study");
+      return;
+    }
+    void refreshAdminSnapshot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSuperAdmin, user?.uid]);
 
   const metadataRows = study
     ? [
@@ -432,6 +465,7 @@ export default function Home() {
             <span>{firebaseConfigured ? "Signed in" : "Local prototype"}</span>
             <strong>{user ? user.displayName || user.email : "Local Prototype"}</strong>
           </div>
+          {isSuperAdmin ? <span className="admin-badge">Super admin</span> : null}
           {firebaseConfigured && user?.uid !== "local" ? (
             <button type="button" className="secondary-action compact-action" onClick={signOutUser}>
               Sign out
@@ -545,7 +579,8 @@ export default function Home() {
             ["export", "Edit Note"],
             ["entities", "Entities"],
             ["memory", "Memory"],
-            ["destinations", "Destinations"]
+            ["destinations", "Destinations"],
+            ...(isSuperAdmin ? ([["admin", "Admin"]] as [string, string][]) : [])
           ].map(([id, label]) => (
             <button
               key={id}
@@ -706,6 +741,83 @@ export default function Home() {
             ))}
           </div>
         </section>
+
+        {isSuperAdmin ? (
+          <section id="adminTab" className={`tab-panel ${activeTab === "admin" ? "active" : ""}`} aria-label="Admin panel">
+            <div className="admin-panel">
+              <div className="admin-header">
+                <div>
+                  <h2>Admin Control Panel</h2>
+                  <p>Super admins can review users, study memory counts, and current platform configuration.</p>
+                </div>
+                <button type="button" className="secondary-action compact-action" onClick={() => void refreshAdminSnapshot()}>
+                  {adminLoading ? "Refreshing..." : "Refresh"}
+                </button>
+              </div>
+
+              <div className="admin-metrics">
+                <article>
+                  <span>Total users</span>
+                  <strong>{adminSnapshot?.totalUsers ?? 0}</strong>
+                </article>
+                <article>
+                  <span>Saved studies</span>
+                  <strong>{adminSnapshot?.totalStudies ?? 0}</strong>
+                </article>
+                <article>
+                  <span>Super admins</span>
+                  <strong>{adminSnapshot?.superAdminEmails.length ?? 2}</strong>
+                </article>
+              </div>
+
+              {adminError ? <p className="admin-error">{adminError}</p> : null}
+
+              <section className="admin-section">
+                <h3>Super Admin Accounts</h3>
+                <ul className="plain-list">
+                  {(adminSnapshot?.superAdminEmails || ["alexlisic@gmail.com", "bethlisic@gmail.com"]).map((email) => (
+                    <li key={email}>{email}</li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="admin-section">
+                <h3>Users</h3>
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Studies</th>
+                        <th>Updated</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {adminSnapshot?.users.length ? (
+                        adminSnapshot.users.map((item) => (
+                          <tr key={item.uid}>
+                            <td>
+                              <strong>{item.displayName}</strong>
+                              <span>{item.email || item.uid}</span>
+                            </td>
+                            <td>{item.role.replace("_", " ")}</td>
+                            <td>{item.studyCount}</td>
+                            <td>{item.updatedAt ? formatMemoryDate(item.updatedAt) : "unknown"}</td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4}>{adminLoading ? "Loading users..." : "No user profiles found yet."}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          </section>
+        ) : null}
       </section>
 
       <div className={`toast ${toast ? "visible" : ""}`} role="status" aria-live="polite">

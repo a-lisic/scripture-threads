@@ -10,25 +10,32 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
+    function superAdmin() {
+      return signedIn() && request.auth.token.email in [
+        "alexlisic@gmail.com",
+        "bethlisic@gmail.com"
+      ];
+    }
+
     match /users/{uid} {
-      allow read, create, update, delete: if owns(uid);
+      allow read, create, update, delete: if owns(uid) || superAdmin();
 
       match /studies/{studyId} {
-        allow read, create, update, delete: if owns(uid);
+        allow read, create, update, delete: if owns(uid) || superAdmin();
       }
 
       match /exports/{exportId} {
-        allow read, create, update, delete: if owns(uid);
+        allow read, create, update, delete: if owns(uid) || superAdmin();
       }
 
       match /entities/{entityId} {
-        allow read, create, update, delete: if owns(uid);
+        allow read, create, update, delete: if owns(uid) || superAdmin();
       }
     }
 
     match /bibleEntities/{entityId} {
       allow read: if signedIn();
-      allow write: if false;
+      allow write: if superAdmin();
     }
   }
 }
