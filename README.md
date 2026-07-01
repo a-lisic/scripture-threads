@@ -5,6 +5,11 @@ Scripture Threads is a Next.js Bible study workspace for generating, editing, re
 ## Local Setup
 
 Create `.env.local` from `.env.example` and fill in the Firebase web app config.
+For the hosted Firebase build, use the Firebase auth domain for `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`:
+
+```text
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=gnco-scripturethreads.firebaseapp.com
+```
 
 ```bash
 pnpm install
@@ -32,6 +37,8 @@ Configured pieces:
 - Firestore database: `(default)`
 - Firestore rules/indexes: deployed from this repo
 - Firebase Hosting site: `gnco-scripturethreads`
+- Primary app URL for auth testing: `https://gnco-scripturethreads.firebaseapp.com`
+- Firebase Auth authorized domains: `gnco-scripturethreads.firebaseapp.com`, `gnco-scripturethreads.web.app`, `localhost`
 - GitHub repo: `https://github.com/a-lisic/scripture-threads`
 
 Deploy Firestore rules and indexes:

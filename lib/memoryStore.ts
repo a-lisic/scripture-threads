@@ -21,6 +21,31 @@ function createMemoryId() {
   return `study-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+function toFirestoreMemoryEntry(entry: MemoryEntry) {
+  const { study, ...rest } = entry;
+  return {
+    ...rest,
+    studyJson: JSON.stringify(study)
+  };
+}
+
+function fromFirestoreMemoryEntry(data: Record<string, unknown>): MemoryEntry | null {
+  let study = data.study;
+  if (typeof data.studyJson === "string") {
+    try {
+      study = JSON.parse(data.studyJson) as Study;
+    } catch {
+      return null;
+    }
+  }
+  if (!study || typeof study !== "object") return null;
+  const { studyJson: _studyJson, ...rest } = data;
+  return {
+    ...(rest as Omit<MemoryEntry, "study">),
+    study: study as Study
+  };
+}
+
 export function createMemoryEntry(ownerId: string, study: Study, markdown: string): MemoryEntry {
   const now = new Date().toISOString();
   return {
@@ -61,7 +86,9 @@ export async function loadMemoryEntries(ownerId: string) {
 
   const studiesRef = collection(db, "users", ownerId, "studies");
   const snapshot = await getDocs(query(studiesRef, orderBy("updatedAt", "desc"), limit(MAX_MEMORY_ENTRIES)));
-  return snapshot.docs.map((item) => item.data() as MemoryEntry);
+  return snapshot.docs
+    .map((item) => fromFirestoreMemoryEntry(item.data()))
+    .filter((entry): entry is MemoryEntry => Boolean(entry));
 }
 
 export async function saveMemoryEntry(entry: MemoryEntry, allLocalEntries: MemoryEntry[]) {
@@ -74,7 +101,7 @@ export async function saveMemoryEntry(entry: MemoryEntry, allLocalEntries: Memor
   await setDoc(
     doc(db, "users", entry.ownerId, "studies", entry.id),
     {
-      ...entry,
+      ...toFirestoreMemoryEntry(entry),
       updatedAt: entry.updatedAt,
       serverUpdatedAt: serverTimestamp()
     },
