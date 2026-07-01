@@ -106,7 +106,7 @@ export type AdminUserSummary = {
 
 export type AdminSettings = {
   appStatus: "prototype" | "private_beta" | "live";
-  defaultTranslation: "CSB" | "NLT";
+  defaultTranslation: string;
   defaultMode: "Quick Read" | "Guided Deep Study" | "Teaching Prep" | "Full Research";
   sourceProfile: string;
   publicSignupEnabled: boolean;

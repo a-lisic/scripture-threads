@@ -40,6 +40,11 @@ type AiServerStatus = {
   connectedAt?: string;
   lastVerifiedAt?: string;
 };
+type TranslationOption = {
+  value: string;
+  label: string;
+  available: boolean;
+};
 
 const aiProviders: Record<
   AiProviderId,
@@ -72,6 +77,11 @@ const localUser = {
   displayName: "Local Prototype",
   email: "local@scripture-threads"
 };
+
+const fallbackTranslationOptions: TranslationOption[] = [
+  { value: "CSB", label: "CSB (not available through current YouVersion key)", available: false },
+  { value: "NLT", label: "NLT (not available through current YouVersion key)", available: false }
+];
 
 function inlineNodeToMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
@@ -166,6 +176,8 @@ export default function Home() {
   const [aiConnectionMessage, setAiConnectionMessage] = useState("Choose a provider to begin.");
   const [aiServerStatus, setAiServerStatus] = useState<AiServerStatus>({ connected: false });
   const [aiBusy, setAiBusy] = useState(false);
+  const [translationOptions, setTranslationOptions] = useState<TranslationOption[]>(fallbackTranslationOptions);
+  const [translationStatus, setTranslationStatus] = useState("Loading YouVersion translations...");
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -484,6 +496,43 @@ export default function Home() {
     }
   }
 
+  async function loadYouVersionTranslations() {
+    if (!firebaseConfigured || !user || user.uid === "local") {
+      setTranslationOptions(fallbackTranslationOptions);
+      setTranslationStatus("Live YouVersion translations load after sign-in.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/youversion/translations", { headers: await authHeaders() });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Unable to load YouVersion translations.");
+
+      const liveOptions: TranslationOption[] = (data.translations || []).map(
+        (item: { value: string; label: string }) => ({
+          value: item.value,
+          label: item.label,
+          available: true
+        })
+      );
+      const liveValues = new Set(liveOptions.map((item) => item.value));
+      const pinnedUnavailable = fallbackTranslationOptions.filter(
+        (item) => [translation, adminSettings.defaultTranslation].includes(item.value) && !liveValues.has(item.value)
+      );
+
+      setTranslationOptions([...pinnedUnavailable, ...liveOptions]);
+      const missingPreferred = ["CSB", "NLT"].filter((item) => !liveValues.has(item));
+      setTranslationStatus(
+        missingPreferred.length
+          ? `Loaded ${liveOptions.length} YouVersion translations. ${missingPreferred.join(" and ")} ${missingPreferred.length === 1 ? "is" : "are"} not available through this key.`
+          : `Loaded ${liveOptions.length} YouVersion translations.`
+      );
+    } catch (error) {
+      setTranslationOptions(fallbackTranslationOptions);
+      setTranslationStatus(error instanceof Error ? error.message : "Unable to load YouVersion translations.");
+    }
+  }
+
   async function connectAiProvider() {
     const provider = aiProviders[aiProvider];
     if (!provider.validateKey(aiKeyDraft)) {
@@ -577,6 +626,7 @@ export default function Home() {
   useEffect(() => {
     if (!authReady || !user) return;
     void refreshAiStatus();
+    void loadYouVersionTranslations();
     void loadMemoryEntries(user.uid).then((entries) => {
       setMemoryEntries(entries);
       const firstEntry = entries[0];
@@ -683,9 +733,13 @@ export default function Home() {
             <label className="field">
               <span>Translation</span>
               <select value={translation} onChange={(event) => setTranslation(event.target.value)}>
-                <option value="CSB">CSB</option>
-                <option value="NLT">NLT</option>
+                {translationOptions.map((option) => (
+                  <option value={option.value} key={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
+              <small className="field-note">{translationStatus}</small>
             </label>
 
             <label className="field">
@@ -1109,13 +1163,17 @@ export default function Home() {
                         onChange={(event) =>
                           setAdminSettings({
                             ...adminSettings,
-                            defaultTranslation: event.target.value as AdminSettings["defaultTranslation"]
+                            defaultTranslation: event.target.value
                           })
                         }
                       >
-                        <option value="CSB">CSB</option>
-                        <option value="NLT">NLT</option>
+                        {translationOptions.map((option) => (
+                          <option value={option.value} key={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
                       </select>
+                      <small className="field-note">{translationStatus}</small>
                     </label>
                     <label className="field admin-wide-field">
                       <span>Default Mode</span>
