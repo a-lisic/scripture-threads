@@ -92,20 +92,30 @@ bibleEntities/{entityId}
 
 ## YouVersion API Next Step
 
-Deferred by decision. When resumed, choose REST or SDK based on the YouVersion Platform app registration and docs. The app should use a server route for all YouVersion calls so the app key is never exposed in browser code.
+REST is the current integration path because Scripture Threads needs custom study/source shaping rather than a prebuilt Bible reader UI. The app should use a server route for all YouVersion calls so the app key is never exposed in browser code.
 
 Server-only env var:
 
 ```text
-YOUVERSION_API_KEY=
+YOUVERSION_APP_KEY=
 ```
+
+Smoke test:
+
+```bash
+pnpm youversion:smoke
+```
+
+Current verification: the app key can fetch English Bible metadata and 2 Chronicles 19 through the passage endpoint. CSB and NLT are not currently included in the English Bible list for this key, so the adapter falls back to the best available study-friendly translation.
 
 ## AI Generation Next Step
 
-Generation should happen through a server-side boundary, not the browser. The current Spark-plan Firebase Hosting build is static, so use one of these paths:
+Generation should happen through a server-side boundary, not the browser. A consumer ChatGPT, Claude, or Codex login cannot safely power the hosted app in the background. The current Spark-plan Firebase Hosting build is static, so use one of these paths:
 
 1. Keep Firebase Spark for Auth/Firestore/Hosting and add a small generation service on Vercel or Cloudflare Workers.
 2. Upgrade Firebase to Blaze later and use Firebase Functions/App Hosting for same-platform server routes.
+3. Offer bring-your-own provider API keys for users who want their own OpenAI or Anthropic billing.
+4. Offer a manual AI mode that copies a structured prompt/source bundle into ChatGPT or Claude and lets the user paste the result back.
 
 Store:
 

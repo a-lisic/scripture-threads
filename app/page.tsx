@@ -871,7 +871,7 @@ export default function Home() {
                     {[
                       ["publicSignupEnabled", "Public signup", "Allow users outside the initial private group."],
                       ["aiGenerationEnabled", "AI generation", "Enable live AI-backed study generation once the backend exists."],
-                      ["youVersionEnabled", "YouVersion", "Enable YouVersion Bible text once API setup resumes."]
+                      ["youVersionEnabled", "YouVersion", "Enable server-side YouVersion Bible text lookup."]
                     ].map(([key, label, description]) => (
                       <label className="admin-toggle" key={key}>
                         <input
@@ -905,11 +905,11 @@ export default function Home() {
                   <div className="admin-status-list">
                     <div>
                       <strong>Bible API</strong>
-                      <span>Deferred until YouVersion setup resumes.</span>
+                      <span>YouVersion REST adapter is built and key-tested; live app use needs a server route so the key stays private.</span>
                     </div>
                     <div>
                       <strong>Generation Backend</strong>
-                      <span>Not connected. Static Firebase Hosting is still key-safe.</span>
+                      <span>Not connected. Static Firebase Hosting is key-safe but cannot run private AI or Bible API calls by itself.</span>
                     </div>
                     <div>
                       <strong>Claim Discipline</strong>

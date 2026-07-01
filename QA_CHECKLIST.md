@@ -79,7 +79,7 @@
 
 ## Known Not Built Yet
 
-- Live Bible text lookup is deferred until YouVersion setup is complete.
+- YouVersion REST adapter is built and smoke-tested, but live browser/mobile lookup still needs a server route.
 - Live AI generation is deferred until a server-side host and `OPENAI_API_KEY` are configured.
 - Direct provider exports are staged in the UI but not connected.
 - Account deletion/export path is required before public release.

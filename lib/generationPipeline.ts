@@ -23,10 +23,11 @@ export function getGenerationBackendStatus(): GenerationBackendStatus {
   return {
     mode: "static-prototype",
     ready: false,
-    missing: ["server-side generation host", "OPENAI_API_KEY"],
+    missing: ["server-side generation host"],
     notes: [
       "The hosted Spark build is static, so browser code must not call private Bible or AI keys.",
-      "YouVersion is intentionally deferred until the API key and allowed translations are confirmed."
+      "YouVersion REST support is implemented as a server-side adapter and smoke test, but it is not called directly from the browser.",
+      "Live AI study generation still needs a provider strategy: app-owned API key, user-owned API key, or manual copy/paste AI workflow."
     ]
   };
 }

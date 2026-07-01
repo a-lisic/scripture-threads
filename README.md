@@ -68,8 +68,9 @@ pnpm build
 Known follow-up:
 
 - Google sign-in and Firestore memory are verified on the Firebase Hosting URL in normal Chrome. The embedded in-app browser may still be unreliable for Google OAuth.
-- `YOUVERSION_API_KEY` and `OPENAI_API_KEY` are intentionally blank until those services are connected.
-- Live Bible/API/AI generation will need a server-side host later. The current Spark-plan build is static and client-only.
+- `OPENAI_API_KEY` is intentionally blank until the AI provider strategy is chosen.
+- `YOUVERSION_APP_KEY` is server-only. The REST adapter and smoke test are built, but the hosted Spark-plan build still needs a server-side route before browser/mobile users can call it live.
+- Live AI generation will need either an app-owned API key, user-owned API keys, or a manual copy/paste workflow into ChatGPT/Claude.
 
 ## Backend Strategy
 
@@ -80,11 +81,12 @@ Recommended next backend path:
 - Keep this static Firebase Hosting deployment as the web app shell.
 - Add a small server-side generation service on Vercel, Cloudflare Workers, or Firebase Functions if/when Blaze is acceptable.
 - Route all private AI/source calls through that service.
-- Keep YouVersion deferred until the app key, translation availability, and allowed usage are confirmed.
+- Use the YouVersion REST adapter behind a server-side route. Do not expose the app key through browser code or `NEXT_PUBLIC_` variables.
+- Current key verification showed BSB/NASB/NIV-family access, but not CSB or NLT under this app key/license set.
 
 ## Current Limits
 
-- No live Bible API yet.
+- YouVersion REST adapter exists, but the static hosted app does not call it live yet.
 - No AI generation yet.
 - Only `2 Chronicles 19` has a full fixture. Other passages generate a structural scaffold.
 - Direct exports to Google Drive, Notion, GoodNotes, Apple Notes, and Obsidian sync are planned but not connected.
