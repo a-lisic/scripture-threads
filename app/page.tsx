@@ -399,6 +399,25 @@ export default function Home() {
       ]
     : [];
 
+  if (firebaseConfigured && (!authReady || !user)) {
+    return (
+      <main className="auth-gate" aria-label="Sign in">
+        <section className="auth-card">
+          <img className="auth-brand-image" src="/assets/scripture-threads-header.png" alt="Scripture Threads" />
+          <p className="eyebrow">Trace. Study. Connect. Grow.</p>
+          <h1>Scripture Threads</h1>
+          <p className="auth-intro">
+            Sign in to open your study workspace, save study memory, and keep your notes connected across devices.
+          </p>
+          <button type="button" className="primary-action auth-action" onClick={signIn} disabled={!authReady}>
+            {authReady ? "Continue with Google" : "Checking sign-in..."}
+          </button>
+          {authError ? <p className="auth-error">{authError}</p> : null}
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="app-shell">
       <section className="control-panel" aria-label="Study setup">
@@ -408,25 +427,16 @@ export default function Home() {
           <h1>Study Workspace</h1>
         </div>
 
-        <section className="auth-panel" aria-label="Account">
+        <section className="account-strip" aria-label="Account">
           <div>
-            <strong>{user ? user.displayName || user.email : "Not signed in"}</strong>
-            <span>{firebaseConfigured ? "Firebase Auth" : "Local prototype mode"}</span>
+            <span>{firebaseConfigured ? "Signed in" : "Local prototype"}</span>
+            <strong>{user ? user.displayName || user.email : "Local Prototype"}</strong>
           </div>
-          {!firebaseConfigured ? (
-            <button type="button" className="secondary-action compact-action" disabled>
-              Firebase setup needed
-            </button>
-          ) : user && user.uid !== "local" ? (
+          {firebaseConfigured && user?.uid !== "local" ? (
             <button type="button" className="secondary-action compact-action" onClick={signOutUser}>
               Sign out
             </button>
-          ) : (
-            <button type="button" className="secondary-action compact-action" onClick={signIn}>
-              Google sign in
-            </button>
-          )}
-          {authError ? <p>{authError}</p> : null}
+          ) : null}
         </section>
 
         <form
