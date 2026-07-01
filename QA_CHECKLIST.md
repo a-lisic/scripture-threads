@@ -80,6 +80,6 @@
 ## Known Not Built Yet
 
 - YouVersion REST adapter is built and smoke-tested, but live browser/mobile lookup still needs a server route.
-- Live AI generation is deferred until a server-side host and `OPENAI_API_KEY` are configured.
+- Connect AI UI is present, but live verification and encrypted key storage need a server-side route.
 - Direct provider exports are staged in the UI but not connected.
 - Account deletion/export path is required before public release.

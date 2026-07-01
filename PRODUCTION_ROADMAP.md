@@ -110,11 +110,11 @@ Current verification: the app key can fetch English Bible metadata and 2 Chronic
 
 ## AI Generation Next Step
 
-Generation should happen through a server-side boundary, not the browser. A consumer ChatGPT, Claude, or Codex login cannot safely power the hosted app in the background. The current Spark-plan Firebase Hosting build is static, so use one of these paths:
+Generation should happen through a server-side boundary, not the browser. A consumer ChatGPT, Claude, or Codex login cannot safely power the hosted app in the background. The product direction is a guided Connect AI flow where users choose OpenAI or Anthropic, create a provider API key on the official provider site, paste it back into Scripture Threads, and let the backend verify and store it encrypted. The current Spark-plan Firebase Hosting build is static, so use one of these paths:
 
 1. Keep Firebase Spark for Auth/Firestore/Hosting and add a small generation service on Vercel or Cloudflare Workers.
 2. Upgrade Firebase to Blaze later and use Firebase Functions/App Hosting for same-platform server routes.
-3. Offer bring-your-own provider API keys for users who want their own OpenAI or Anthropic billing.
+3. Add encrypted per-user provider key storage, verification, rotation, and disconnect controls.
 4. Offer a manual AI mode that copies a structured prompt/source bundle into ChatGPT or Claude and lets the user paste the result back.
 
 Store:

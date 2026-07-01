@@ -27,7 +27,7 @@ export function getGenerationBackendStatus(): GenerationBackendStatus {
     notes: [
       "The hosted Spark build is static, so browser code must not call private Bible or AI keys.",
       "YouVersion REST support is implemented as a server-side adapter and smoke test, but it is not called directly from the browser.",
-      "Live AI study generation still needs a provider strategy: app-owned API key, user-owned API key, or manual copy/paste AI workflow."
+      "Live AI study generation should use the guided Connect AI flow, then verify and store keys through an encrypted server-side route."
     ]
   };
 }

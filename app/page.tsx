@@ -31,7 +31,35 @@ import {
 import { generateStudy } from "@/lib/study";
 import type { AdminSettings, AdminSnapshot, MemoryEntry, Study } from "@/lib/types";
 
-type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "admin";
+type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "ai" | "admin";
+type AiProviderId = "openai" | "anthropic";
+type AiConnectionState = "not_started" | "format_ready";
+
+const aiProviders: Record<
+  AiProviderId,
+  {
+    label: string;
+    keyHint: string;
+    keyUrl: string;
+    docsUrl: string;
+    validateKey: (value: string) => boolean;
+  }
+> = {
+  openai: {
+    label: "OpenAI",
+    keyHint: "Usually starts with sk-",
+    keyUrl: "https://platform.openai.com/api-keys",
+    docsUrl: "https://platform.openai.com/docs/quickstart",
+    validateKey: (value) => /^sk-[A-Za-z0-9_-]{20,}$/.test(value.trim())
+  },
+  anthropic: {
+    label: "Anthropic",
+    keyHint: "Usually starts with sk-ant-",
+    keyUrl: "https://console.anthropic.com/settings/keys",
+    docsUrl: "https://docs.anthropic.com/en/docs/get-started",
+    validateKey: (value) => /^sk-ant-[A-Za-z0-9_-]{20,}$/.test(value.trim())
+  }
+};
 
 const localUser = {
   uid: "local",
@@ -126,6 +154,10 @@ export default function Home() {
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminSaving, setAdminSaving] = useState(false);
   const [adminError, setAdminError] = useState("");
+  const [aiProvider, setAiProvider] = useState<AiProviderId>("openai");
+  const [aiKeyDraft, setAiKeyDraft] = useState("");
+  const [aiConnectionState, setAiConnectionState] = useState<AiConnectionState>("not_started");
+  const [aiConnectionMessage, setAiConnectionMessage] = useState("Choose a provider to begin.");
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -378,6 +410,34 @@ export default function Home() {
     }
   }
 
+  function selectAiProvider(provider: AiProviderId) {
+    setAiProvider(provider);
+    setAiKeyDraft("");
+    setAiConnectionState("not_started");
+    setAiConnectionMessage(`${aiProviders[provider].label} selected. Create a key, then paste it here when you come back.`);
+  }
+
+  function checkAiKeyFormat() {
+    const provider = aiProviders[aiProvider];
+    if (!provider.validateKey(aiKeyDraft)) {
+      setAiConnectionState("not_started");
+      setAiConnectionMessage(`That does not look like a valid ${provider.label} API key yet. ${provider.keyHint}.`);
+      return;
+    }
+
+    setAiConnectionState("format_ready");
+    setAiConnectionMessage(
+      `${provider.label} key format looks right. Final verification and encrypted saving need the server-side connection route.`
+    );
+    showToast(`${provider.label} key format checked.`);
+  }
+
+  function clearAiKeyDraft() {
+    setAiKeyDraft("");
+    setAiConnectionState("not_started");
+    setAiConnectionMessage(`${aiProviders[aiProvider].label} key cleared from this browser session.`);
+  }
+
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
@@ -607,6 +667,7 @@ export default function Home() {
             ["entities", "Entities"],
             ["memory", "Memory"],
             ["destinations", "Destinations"],
+            ["ai", "AI"],
             ...(isSuperAdmin ? ([["admin", "Admin"]] as [string, string][]) : [])
           ].map(([id, label]) => (
             <button
@@ -766,6 +827,104 @@ export default function Home() {
                 <p>{destination.description}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section id="aiTab" className={`tab-panel ${activeTab === "ai" ? "active" : ""}`} aria-label="AI connection">
+          <div className="ai-panel">
+            <div className="memory-header">
+              <h2>Connect AI</h2>
+              <p>
+                Use your own OpenAI or Anthropic account to power study generation. Scripture Threads should guide the setup,
+                verify the key, and save it encrypted once the backend connection route is added.
+              </p>
+            </div>
+
+            <div className="ai-status-card">
+              <div>
+                <span>Connection Status</span>
+                <strong>{aiConnectionState === "format_ready" ? "Ready For Backend Verification" : "Not Connected"}</strong>
+              </div>
+              <p>{aiConnectionMessage}</p>
+            </div>
+
+            <div className="ai-provider-grid">
+              {(Object.keys(aiProviders) as AiProviderId[]).map((providerId) => {
+                const provider = aiProviders[providerId];
+                return (
+                  <button
+                    type="button"
+                    key={providerId}
+                    className={`ai-provider-card ${aiProvider === providerId ? "active" : ""}`}
+                    onClick={() => selectAiProvider(providerId)}
+                  >
+                    <strong>{provider.label}</strong>
+                    <span>{provider.keyHint}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <section className="ai-connection-section">
+              <div className="ai-step-list">
+                <article>
+                  <span>1</span>
+                  <div>
+                    <h3>Create an API key</h3>
+                    <p>
+                      Open the official {aiProviders[aiProvider].label} page, create a key in your account, then copy it.
+                    </p>
+                    <div className="ai-action-row">
+                      <a className="secondary-link-action" href={aiProviders[aiProvider].keyUrl} target="_blank" rel="noreferrer">
+                        Open key page
+                      </a>
+                      <a className="text-link-action" href={aiProviders[aiProvider].docsUrl} target="_blank" rel="noreferrer">
+                        Provider docs
+                      </a>
+                    </div>
+                  </div>
+                </article>
+                <article>
+                  <span>2</span>
+                  <div>
+                    <h3>Paste and check</h3>
+                    <p>The key is held only in this form right now. It is not saved by this static app.</p>
+                    <label className="field">
+                      <span>{aiProviders[aiProvider].label} API Key</span>
+                      <input
+                        type="password"
+                        value={aiKeyDraft}
+                        onChange={(event) => {
+                          setAiKeyDraft(event.target.value);
+                          setAiConnectionState("not_started");
+                        }}
+                        placeholder={aiProviders[aiProvider].keyHint}
+                        autoComplete="off"
+                        spellCheck={false}
+                      />
+                    </label>
+                    <div className="ai-action-row">
+                      <button type="button" className="primary-action compact-action" onClick={checkAiKeyFormat}>
+                        Check Key
+                      </button>
+                      <button type="button" className="secondary-action compact-action" onClick={clearAiKeyDraft}>
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                </article>
+                <article>
+                  <span>3</span>
+                  <div>
+                    <h3>Verify and connect</h3>
+                    <p>
+                      The next implementation step is a server route that sends a tiny test request, encrypts the key, and
+                      stores only the encrypted version for this user.
+                    </p>
+                  </div>
+                </article>
+              </div>
+            </section>
           </div>
         </section>
 

@@ -70,7 +70,7 @@ Known follow-up:
 - Google sign-in and Firestore memory are verified on the Firebase Hosting URL in normal Chrome. The embedded in-app browser may still be unreliable for Google OAuth.
 - `OPENAI_API_KEY` is intentionally blank until the AI provider strategy is chosen.
 - `YOUVERSION_APP_KEY` is server-only. The REST adapter and smoke test are built, but the hosted Spark-plan build still needs a server-side route before browser/mobile users can call it live.
-- Live AI generation will need either an app-owned API key, user-owned API keys, or a manual copy/paste workflow into ChatGPT/Claude.
+- Live AI generation will use the guided Connect AI flow. Users can choose OpenAI or Anthropic, open the official key page, paste the key back into Scripture Threads, and then the backend will verify and store it encrypted.
 
 ## Backend Strategy
 
@@ -87,6 +87,6 @@ Recommended next backend path:
 ## Current Limits
 
 - YouVersion REST adapter exists, but the static hosted app does not call it live yet.
-- No AI generation yet.
+- The Connect AI UI exists, but final verification/encrypted key storage still needs a server-side route.
 - Only `2 Chronicles 19` has a full fixture. Other passages generate a structural scaffold.
 - Direct exports to Google Drive, Notion, GoodNotes, Apple Notes, and Obsidian sync are planned but not connected.
