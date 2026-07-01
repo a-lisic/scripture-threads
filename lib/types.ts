@@ -95,6 +95,16 @@ export type ExportDestination = {
   status: "available" | "planned" | "requires-connection";
 };
 
+export type ObsidianConnectorSettings = {
+  vaultName: string;
+  studyNoteFolder: string;
+  bookHubFolder: string;
+  contentHubFolder: string;
+  bibleDatabaseFolder: string;
+  exportMethod: "obsidian-uri" | "markdown-download";
+  updatedAt?: string;
+};
+
 export type AdminUserSummary = {
   uid: string;
   email: string;

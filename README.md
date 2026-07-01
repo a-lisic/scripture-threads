@@ -122,4 +122,4 @@ Recommended next backend path:
 - YouVersion REST adapter exists, but the static hosted app does not call it live yet.
 - Connect AI routes exist for verification, encrypted storage, status, disconnect, and live generation.
 - Only `2 Chronicles 19` has a full fixture. Other passages generate a structural scaffold.
-- Direct exports to Google Drive, Notion, GoodNotes, Apple Notes, and Obsidian sync are planned but not connected.
+- Obsidian app-link export is connected with markdown fallback. Direct exports to Google Drive, Notion, GoodNotes, and Apple Notes are planned but not connected.

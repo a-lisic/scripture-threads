@@ -16,8 +16,8 @@ export const exportDestinations: ExportDestination[] = [
   {
     id: "obsidian",
     label: "Obsidian",
-    description: "Manual markdown export now; future options may include Obsidian URI, plugin, or local companion sync.",
-    status: "planned"
+    description: "Open the edited markdown note directly in a configured Obsidian vault, with markdown download fallback.",
+    status: "available"
   },
   {
     id: "icloud",

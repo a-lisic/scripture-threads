@@ -28,8 +28,15 @@ import {
   MAX_MEMORY_ENTRIES,
   saveMemoryEntry
 } from "@/lib/memoryStore";
+import {
+  buildObsidianStudyPath,
+  buildObsidianUri,
+  DEFAULT_OBSIDIAN_SETTINGS,
+  loadObsidianSettings,
+  saveObsidianSettings
+} from "@/lib/obsidianConnector";
 import { generateStudy } from "@/lib/study";
-import type { AdminSettings, AdminSnapshot, MemoryEntry, Study } from "@/lib/types";
+import type { AdminSettings, AdminSnapshot, MemoryEntry, ObsidianConnectorSettings, Study } from "@/lib/types";
 
 type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "ai" | "admin";
 type AiProviderId = "openai" | "anthropic";
@@ -178,6 +185,9 @@ export default function Home() {
   const [aiBusy, setAiBusy] = useState(false);
   const [translationOptions, setTranslationOptions] = useState<TranslationOption[]>(fallbackTranslationOptions);
   const [translationStatus, setTranslationStatus] = useState("Loading YouVersion translations...");
+  const [obsidianSettings, setObsidianSettings] =
+    useState<ObsidianConnectorSettings>(DEFAULT_OBSIDIAN_SETTINGS);
+  const [obsidianSaving, setObsidianSaving] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -391,6 +401,41 @@ export default function Home() {
     URL.revokeObjectURL(url);
     setMenuOpen(null);
     showToast("Markdown download started.");
+  }
+
+  function exportToObsidian() {
+    const nextMarkdown = currentMarkdownFromEditor();
+    setMarkdown(nextMarkdown);
+    const exportLink = buildObsidianUri(obsidianSettings, nextMarkdown, study, passage);
+    setMenuOpen(null);
+
+    if (!obsidianSettings.vaultName.trim()) {
+      showToast("Add your Obsidian vault name first.");
+      setActiveTab("destinations");
+      return;
+    }
+
+    if (exportLink.tooLarge || obsidianSettings.exportMethod === "markdown-download") {
+      downloadMarkdown();
+      if (exportLink.tooLarge) showToast("Note is large. Downloaded markdown instead.");
+      return;
+    }
+
+    window.location.href = exportLink.uri;
+    showToast("Opening Obsidian...");
+  }
+
+  async function handleSaveObsidianSettings() {
+    setObsidianSaving(true);
+    try {
+      const nextSettings = await saveObsidianSettings(ownerId, obsidianSettings);
+      setObsidianSettings(nextSettings);
+      showToast("Obsidian settings saved.");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Obsidian settings could not be saved.");
+    } finally {
+      setObsidianSaving(false);
+    }
   }
 
   function exportPdf() {
@@ -622,6 +667,7 @@ export default function Home() {
     if (!authReady || !user) return;
     void refreshAiStatus();
     void loadYouVersionTranslations();
+    void loadObsidianSettings(user.uid).then(setObsidianSettings).catch(() => setObsidianSettings(DEFAULT_OBSIDIAN_SETTINGS));
     void loadMemoryEntries(user.uid).then((entries) => {
       setMemoryEntries(entries);
       const firstEntry = entries[0];
@@ -786,6 +832,9 @@ export default function Home() {
                 Export
               </button>
               <div className="menu-popover" hidden={menuOpen !== "export"}>
+                <button type="button" onClick={exportToObsidian}>
+                  Obsidian
+                </button>
                 <button type="button" onClick={downloadMarkdown}>
                   Markdown .md
                 </button>
@@ -966,8 +1015,89 @@ export default function Home() {
         >
           <div className="memory-header">
             <h2>Export Destinations</h2>
-            <p>Markdown and PDF work now. Other destinations are staged so the data model will not assume Obsidian is the only future path.</p>
+            <p>Obsidian, Markdown, and PDF work now. Other destinations are staged so the data model will not assume one note app.</p>
           </div>
+          <section className="connector-panel" aria-label="Obsidian connector settings">
+            <div className="connector-heading">
+              <div>
+                <h3>Obsidian Connector</h3>
+                <p>Send the edited markdown note into your vault using Obsidian's app link, or fall back to a markdown download.</p>
+              </div>
+              <span>{obsidianSettings.exportMethod === "obsidian-uri" ? "Open in Obsidian" : "Download .md"}</span>
+            </div>
+
+            <div className="connector-grid">
+              <label className="field">
+                <span>Vault Name</span>
+                <input
+                  value={obsidianSettings.vaultName}
+                  onChange={(event) => setObsidianSettings({ ...obsidianSettings, vaultName: event.target.value })}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="field">
+                <span>Export Method</span>
+                <select
+                  value={obsidianSettings.exportMethod}
+                  onChange={(event) =>
+                    setObsidianSettings({
+                      ...obsidianSettings,
+                      exportMethod: event.target.value as ObsidianConnectorSettings["exportMethod"]
+                    })
+                  }
+                >
+                  <option value="obsidian-uri">Open in Obsidian</option>
+                  <option value="markdown-download">Download Markdown</option>
+                </select>
+              </label>
+              <label className="field connector-wide-field">
+                <span>Study Note Folder</span>
+                <input
+                  value={obsidianSettings.studyNoteFolder}
+                  onChange={(event) => setObsidianSettings({ ...obsidianSettings, studyNoteFolder: event.target.value })}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="field connector-wide-field">
+                <span>Book Hub Folder</span>
+                <input
+                  value={obsidianSettings.bookHubFolder}
+                  onChange={(event) => setObsidianSettings({ ...obsidianSettings, bookHubFolder: event.target.value })}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="field connector-wide-field">
+                <span>Content Hub Folder</span>
+                <input
+                  value={obsidianSettings.contentHubFolder}
+                  onChange={(event) => setObsidianSettings({ ...obsidianSettings, contentHubFolder: event.target.value })}
+                  autoComplete="off"
+                />
+              </label>
+              <label className="field connector-wide-field">
+                <span>Bible Database Folder</span>
+                <input
+                  value={obsidianSettings.bibleDatabaseFolder}
+                  onChange={(event) => setObsidianSettings({ ...obsidianSettings, bibleDatabaseFolder: event.target.value })}
+                  autoComplete="off"
+                />
+              </label>
+            </div>
+
+            <div className="connector-preview">
+              <span>Next Obsidian note</span>
+              <code>{buildObsidianStudyPath(obsidianSettings, study, passage)}</code>
+            </div>
+
+            <div className="connector-actions">
+              <button type="button" className="secondary-action" onClick={() => void handleSaveObsidianSettings()} disabled={obsidianSaving}>
+                {obsidianSaving ? "Saving..." : "Save Settings"}
+              </button>
+              <button type="button" className="primary-action" onClick={exportToObsidian}>
+                Export to Obsidian
+              </button>
+            </div>
+          </section>
           <div className="destination-grid">
             {exportDestinations.map((destination) => (
               <article className="destination-card" key={destination.id}>
