@@ -6,7 +6,7 @@
   - Local in-app browser status: reaches Google account chooser, then returns signed out on localhost. Re-test in normal browser and hosted domain.
 - Unauthenticated/local prototype mode does not expose cloud data.
 - Firestore rules prevent one user from reading another user's studies.
-  - Current status: Firestore rules deployed to `msr-ecosystem`.
+  - Current status: Firestore rules deployed to `gnco-scripturethreads`.
 - Generate creates a memory entry.
 - Editing the note auto-saves the active memory entry.
 - Restoring a memory entry does not overwrite unsaved edits.
@@ -58,19 +58,18 @@
 
 ## Firebase Setup
 
-- Project: `msr-ecosystem`
+- Project: `gnco-scripturethreads`
 - Web app: `Scripture Threads`
 - Google Auth provider: enabled
-- Firestore database: `(default)` in `nam5`
-- App Hosting backend: `scripture-threads`
-- App Hosting URL: `https://scripture-threads--msr-ecosystem.us-central1.hosted.app`
+- Firestore database: `(default)`
+- Firebase Hosting site: `gnco-scripturethreads`
 - GitHub repo: `https://github.com/a-lisic/scripture-threads`
 - Rules/indexes deploy command: `pnpm firebase:deploy:firestore`
 
 ## Hosting Launch
 
-- Attach the App Hosting backend to the GitHub repo/branch in Firebase Console.
-- Create first App Hosting rollout from `main`.
-- Verify the hosted URL loads the app shell.
+- Build static export with `pnpm build`.
+- Deploy Firebase Hosting with `pnpm firebase:deploy:hosting`.
+- Verify the Firebase Hosting URL loads the app shell.
 - Verify Google sign-in on hosted URL.
 - Verify Firestore study memory after hosted sign-in.

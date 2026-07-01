@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Scripture Threads",
   description: "Trace, study, connect, and grow through source-grounded Bible study notes.",
   applicationName: "Scripture Threads",
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Scripture Threads",

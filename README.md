@@ -22,23 +22,29 @@ http://localhost:3000
 Project alias:
 
 ```text
-default -> msr-ecosystem
+default -> gnco-scripturethreads
 ```
 
 Configured pieces:
 
 - Firebase web app: `Scripture Threads`
 - Firebase Auth: Google provider enabled
-- Firestore database: `(default)` in `nam5`
+- Firestore database: `(default)`
 - Firestore rules/indexes: deployed from this repo
-- Firebase App Hosting backend: `scripture-threads`
-- App Hosting URL: `https://scripture-threads--msr-ecosystem.us-central1.hosted.app`
+- Firebase Hosting site: `gnco-scripturethreads`
 - GitHub repo: `https://github.com/a-lisic/scripture-threads`
 
 Deploy Firestore rules and indexes:
 
 ```bash
 pnpm firebase:deploy:firestore
+```
+
+Build and deploy the static web app:
+
+```bash
+pnpm build
+pnpm firebase:deploy:hosting
 ```
 
 ## Verification
@@ -52,9 +58,9 @@ pnpm build
 
 Known follow-up:
 
-- Google sign-in reaches the Google account chooser in the in-app browser, but that embedded browser returns to localhost still signed out. Re-test in a normal browser and again on the App Hosting URL.
-- Attach the App Hosting backend to the GitHub repo/branch in Firebase Console, then create the first rollout from `main`.
+- Google sign-in reaches the Google account chooser in the in-app browser, but that embedded browser can be unreliable on localhost. Re-test in a normal browser and again on the Firebase Hosting URL.
 - `YOUVERSION_API_KEY` and `OPENAI_API_KEY` are intentionally blank until those services are connected.
+- Live Bible/API/AI generation will need a server-side host later. The current Spark-plan build is static and client-only.
 
 ## Current Limits
 
