@@ -188,6 +188,7 @@ export default function Home() {
   const [obsidianSettings, setObsidianSettings] =
     useState<ObsidianConnectorSettings>(DEFAULT_OBSIDIAN_SETTINGS);
   const [obsidianSaving, setObsidianSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -214,12 +215,16 @@ export default function Home() {
     return `${preamble || ""}${editorBodyToMarkdown(editorRef.current)}`;
   }
 
-  async function persistEntries(nextEntries: MemoryEntry[], entryToSave?: MemoryEntry) {
+  function persistEntries(nextEntries: MemoryEntry[], entryToSave?: MemoryEntry) {
     setMemoryEntries(nextEntries);
-    if (entryToSave) await saveMemoryEntry(entryToSave, nextEntries);
+    if (entryToSave) {
+      void saveMemoryEntry(entryToSave, nextEntries).catch(() => {
+        showToast("Draft saved locally. Cloud sync will retry later.");
+      });
+    }
   }
 
-  async function saveCurrentMemory() {
+  function saveCurrentMemory() {
     if (!activeMemoryId || !study) return;
     const nextMarkdown = currentMarkdownFromEditor();
     const index = memoryEntries.findIndex((entry) => entry.id === activeMemoryId);
@@ -240,7 +245,7 @@ export default function Home() {
       ...memoryEntries.slice(index + 1)
     ].slice(0, MAX_MEMORY_ENTRIES);
     setMarkdown(nextMarkdown);
-    await persistEntries(nextEntries, updated);
+    persistEntries(nextEntries, updated);
   }
 
   function scheduleMemorySave() {
@@ -272,16 +277,16 @@ export default function Home() {
     if (editorRef.current) editorRef.current.innerHTML = renderMarkdownPreview(nextMarkdown);
   }
 
-  async function rememberStudy(nextStudy: Study, nextMarkdown: string) {
+  function rememberStudy(nextStudy: Study, nextMarkdown: string) {
     const entry = createMemoryEntry(ownerId, nextStudy, nextMarkdown);
     const nextEntries = [entry, ...memoryEntries.filter((item) => item.id !== entry.id)].slice(0, MAX_MEMORY_ENTRIES);
     setActiveMemoryId(entry.id);
-    await persistEntries(nextEntries, entry);
+    persistEntries(nextEntries, entry);
   }
 
   async function loadMemoryEntry(id: string, notify = true) {
     clearPendingMemorySave();
-    await saveCurrentMemory();
+    saveCurrentMemory();
     const entry = memoryEntries.find((item) => item.id === id);
     if (!entry) return;
     setActiveMemoryId(entry.id);
@@ -295,8 +300,10 @@ export default function Home() {
   }
 
   async function handleGenerate() {
+    if (generating) return;
     clearPendingMemorySave();
-    await saveCurrentMemory();
+    saveCurrentMemory();
+    setGenerating(true);
     try {
       let nextStudy: Study;
       if (aiServerStatus.connected && firebaseConfigured && user?.uid !== "local") {
@@ -324,7 +331,7 @@ export default function Home() {
       setStudy(nextStudy);
       setMarkdown(nextMarkdown);
       setEditableNote(nextMarkdown);
-      await rememberStudy(nextStudy, nextMarkdown);
+      rememberStudy(nextStudy, nextMarkdown);
       showToast(aiServerStatus.connected ? "Live study generated." : "Study generated.");
       if (window.matchMedia("(max-width: 620px)").matches) {
         setActiveTab("study");
@@ -332,6 +339,8 @@ export default function Home() {
       }
     } catch (error) {
       showToast(error instanceof Error ? error.message : "Study generation failed.");
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -795,8 +804,8 @@ export default function Home() {
           </div>
 
           <div className="button-row">
-            <button type="submit" className="primary-action">
-              Generate
+            <button type="submit" className="primary-action" disabled={generating}>
+              {generating ? "Generating..." : "Generate"}
             </button>
           </div>
 
