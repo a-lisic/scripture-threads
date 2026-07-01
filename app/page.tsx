@@ -79,8 +79,8 @@ const localUser = {
 };
 
 const fallbackTranslationOptions: TranslationOption[] = [
-  { value: "CSB", label: "CSB (not available through current YouVersion key)", available: false },
-  { value: "NLT", label: "NLT (not available through current YouVersion key)", available: false }
+  { value: "CSB", label: "CSB", available: false },
+  { value: "NLT", label: "NLT", available: false }
 ];
 
 function inlineNodeToMarkdown(node: Node): string {
@@ -499,7 +499,7 @@ export default function Home() {
   async function loadYouVersionTranslations() {
     if (!firebaseConfigured || !user || user.uid === "local") {
       setTranslationOptions(fallbackTranslationOptions);
-      setTranslationStatus("Live YouVersion translations load after sign-in.");
+      setTranslationStatus("");
       return;
     }
 
@@ -521,15 +521,10 @@ export default function Home() {
       );
 
       setTranslationOptions([...pinnedUnavailable, ...liveOptions]);
-      const missingPreferred = ["CSB", "NLT"].filter((item) => !liveValues.has(item));
-      setTranslationStatus(
-        missingPreferred.length
-          ? `Loaded ${liveOptions.length} YouVersion translations. ${missingPreferred.join(" and ")} ${missingPreferred.length === 1 ? "is" : "are"} not available through this key.`
-          : `Loaded ${liveOptions.length} YouVersion translations.`
-      );
+      setTranslationStatus("");
     } catch (error) {
       setTranslationOptions(fallbackTranslationOptions);
-      setTranslationStatus(error instanceof Error ? error.message : "Unable to load YouVersion translations.");
+      setTranslationStatus("");
     }
   }
 
@@ -739,7 +734,7 @@ export default function Home() {
                   </option>
                 ))}
               </select>
-              <small className="field-note">{translationStatus}</small>
+              {translationStatus ? <small className="field-note">{translationStatus}</small> : null}
             </label>
 
             <label className="field">
@@ -758,11 +753,6 @@ export default function Home() {
               Generate
             </button>
           </div>
-
-          <section className="generation-status" aria-label="Generation status">
-            <strong>{generationStatus.mode === "static-prototype" ? "Prototype generation" : "Server generation"}</strong>
-            <span>{generationStatus.ready ? "Live generation ready" : generationStatus.missing.join(", ")}</span>
-          </section>
 
           <div className="action-menus" aria-label="Copy and export actions">
             <div className="action-menu">

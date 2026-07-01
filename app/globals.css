@@ -176,7 +176,7 @@ h3 {
 
 .field-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
@@ -189,6 +189,12 @@ textarea {
   background: #fffefa;
   color: var(--ink);
   padding: 11px 12px;
+}
+
+select {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 textarea {

@@ -13,6 +13,14 @@ function abbreviationFor(bible: {
   return bible.localized_abbreviation || bible.abbreviation;
 }
 
+function displayTitleFor(title: string) {
+  return title
+    .replace(/^The\s+/i, "")
+    .replace(/\s+Version$/i, "")
+    .replace(/\s+Bible$/i, "")
+    .trim();
+}
+
 export async function GET(request: Request) {
   try {
     await requireUser(request);
@@ -26,7 +34,7 @@ export async function GET(request: Request) {
           value: abbreviation,
           abbreviation,
           title,
-          label: `${abbreviation} - ${title}`
+          label: `${abbreviation} - ${displayTitleFor(title)}`
         };
       })
       .sort((a, b) => {
