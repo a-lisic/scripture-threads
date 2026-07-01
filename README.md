@@ -1,6 +1,6 @@
 # Scripture Threads
 
-Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, claim-ledger/source metadata, and staged destination options.
+Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, guided AI provider connection, encrypted server-side AI key storage on Vercel, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, claim-ledger/source metadata, and staged destination options.
 
 ## Local Setup
 
@@ -49,12 +49,46 @@ Deploy Firestore rules and indexes:
 pnpm firebase:deploy:firestore
 ```
 
-Build and deploy the static web app:
+## Vercel
+
+Vercel is now the production host for the full Next.js app because AI connection and generation require API routes.
+
+Required Vercel environment variables:
+
+```text
+NEXT_PUBLIC_FIREBASE_API_KEY=
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=gnco-scripturethreads.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=gnco-scripturethreads
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=
+NEXT_PUBLIC_FIREBASE_APP_ID=
+FIREBASE_PROJECT_ID=gnco-scripturethreads
+FIREBASE_CLIENT_EMAIL=
+FIREBASE_PRIVATE_KEY=
+APP_ENCRYPTION_KEY=
+YOUVERSION_APP_KEY=
+AI_OPENAI_MODEL=gpt-4.1-mini
+AI_ANTHROPIC_MODEL=claude-3-5-haiku-latest
+```
+
+Generate an encryption key:
+
+```bash
+openssl rand -base64 32
+```
+
+Deploy the web app and API routes:
 
 ```bash
 pnpm build
-pnpm firebase:deploy:hosting
+pnpm deploy:vercel
 ```
+
+Custom domain status:
+
+- Vercel project domain: `https://scripture-threads.vercel.app`
+- `threads.goodnewsco.church` is attached to the Vercel project, but DNS must point `threads.goodnewsco.church` to Vercel before it serves the dynamic app.
+- Vercel recommended DNS record: `A threads.goodnewsco.church 76.76.21.21`
 
 ## Verification
 
@@ -67,19 +101,18 @@ pnpm build
 
 Known follow-up:
 
-- Google sign-in and Firestore memory are verified on the Firebase Hosting URL in normal Chrome. The embedded in-app browser may still be unreliable for Google OAuth.
-- `OPENAI_API_KEY` is intentionally blank until the AI provider strategy is chosen.
-- `YOUVERSION_APP_KEY` is server-only. The REST adapter and smoke test are built, but the hosted Spark-plan build still needs a server-side route before browser/mobile users can call it live.
-- Live AI generation will use the guided Connect AI flow. Users can choose OpenAI or Anthropic, open the official key page, paste the key back into Scripture Threads, and then the backend will verify and store it encrypted.
+- Google sign-in and Firestore memory are verified on Firebase Hosting in normal Chrome. Re-test on the Vercel URL after the first production deploy and add the Vercel/custom domains to Firebase Auth authorized domains.
+- `YOUVERSION_APP_KEY` is server-only. The REST adapter and smoke test are built; the next step is routing live Bible text through Vercel API routes.
+- Live AI generation now has Vercel API routes for connect/status/disconnect/generate. Production use requires Vercel env vars for Firebase Admin and encryption.
 
 ## Backend Strategy
 
-The current Firebase Spark setup should stay responsible for Auth, Firestore, and static Hosting. Live Bible/API/AI generation should run behind a server-side boundary so private keys are never exposed through `NEXT_PUBLIC_` variables.
+Firebase stays responsible for Auth and Firestore. Vercel hosts the Next.js app and server routes so private keys are never exposed through `NEXT_PUBLIC_` variables.
 
 Recommended next backend path:
 
-- Keep this static Firebase Hosting deployment as the web app shell.
-- Add a small server-side generation service on Vercel, Cloudflare Workers, or Firebase Functions if/when Blaze is acceptable.
+- Keep Firebase Auth and Firestore as the identity/data layer.
+- Use Vercel for the Next.js app and API routes.
 - Route all private AI/source calls through that service.
 - Use the YouVersion REST adapter behind a server-side route. Do not expose the app key through browser code or `NEXT_PUBLIC_` variables.
 - Current key verification showed BSB/NASB/NIV-family access, but not CSB or NLT under this app key/license set.
@@ -87,6 +120,6 @@ Recommended next backend path:
 ## Current Limits
 
 - YouVersion REST adapter exists, but the static hosted app does not call it live yet.
-- The Connect AI UI exists, but final verification/encrypted key storage still needs a server-side route.
+- Connect AI routes exist for verification, encrypted storage, status, disconnect, and live generation.
 - Only `2 Chronicles 19` has a full fixture. Other passages generate a structural scaffold.
 - Direct exports to Google Drive, Notion, GoodNotes, Apple Notes, and Obsidian sync are planned but not connected.

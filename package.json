@@ -9,15 +9,19 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "youversion:smoke": "node scripts/youversion-smoke.mjs",
+    "deploy:vercel": "vercel --prod",
     "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
     "firebase:deploy:hosting": "firebase deploy --only hosting",
     "firebase:deploy": "firebase deploy --only hosting,firestore:rules,firestore:indexes"
   },
   "dependencies": {
     "firebase": "^11.0.0",
+    "firebase-admin": "^14.1.0",
+    "jose": "^6.2.3",
     "next": "^15.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

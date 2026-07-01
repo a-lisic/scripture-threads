@@ -21,6 +21,7 @@ The project now has a Next.js app shell with:
 - Generation-ready study data with source records and claim ledger fields.
 - Mobile-responsive workspace.
 - Export destination registry for Markdown, PDF, Obsidian, iCloud, Google Drive, Notion, GoodNotes, Apple Notes, Google Docs, and Word/DOCX.
+- Vercel API routes for AI connect/status/disconnect/generate with encrypted per-user provider key storage.
 
 ## Firebase Project Setup Needed
 
@@ -110,11 +111,21 @@ Current verification: the app key can fetch English Bible metadata and 2 Chronic
 
 ## AI Generation Next Step
 
-Generation should happen through a server-side boundary, not the browser. A consumer ChatGPT, Claude, or Codex login cannot safely power the hosted app in the background. The product direction is a guided Connect AI flow where users choose OpenAI or Anthropic, create a provider API key on the official provider site, paste it back into Scripture Threads, and let the backend verify and store it encrypted. The current Spark-plan Firebase Hosting build is static, so use one of these paths:
+Generation happens through Vercel API routes, not the browser. A consumer ChatGPT, Claude, or Codex login cannot safely power the hosted app in the background. The product direction is a guided Connect AI flow where users choose OpenAI or Anthropic, create a provider API key on the official provider site, paste it back into Scripture Threads, and let the backend verify and store it encrypted.
 
-1. Keep Firebase Spark for Auth/Firestore/Hosting and add a small generation service on Vercel or Cloudflare Workers.
-2. Upgrade Firebase to Blaze later and use Firebase Functions/App Hosting for same-platform server routes.
-3. Add encrypted per-user provider key storage, verification, rotation, and disconnect controls.
+Implemented:
+
+1. `POST /api/ai/connect`
+2. `GET /api/ai/status`
+3. `POST /api/ai/disconnect`
+4. `POST /api/generate-study`
+5. Encrypted per-user provider key storage at `users/{uid}/private/aiConnection`
+
+Still needed:
+
+1. Deploy to Vercel with required environment variables.
+2. Add Vercel/custom domains to Firebase Auth authorized domains.
+3. Add YouVersion live passage route.
 4. Offer a manual AI mode that copies a structured prompt/source bundle into ChatGPT or Claude and lets the user paste the result back.
 
 Store:
@@ -141,6 +152,6 @@ The app should keep the existing claim discipline:
 4. Hosted deployment works on mobile and desktop.
 5. Server-side generation service accepts passage/mode/translation and returns structured study JSON.
 6. AI generation with source bundles.
-7. YouVersion Bible text integration after API setup resumes.
+7. YouVersion Bible text integration through Vercel route.
 8. Export connector expansion.
 9. Full QA and refactor pass.

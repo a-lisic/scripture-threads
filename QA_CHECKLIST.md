@@ -24,6 +24,7 @@
 - Entities
 - Memory
 - Destinations
+- AI connection
 - Auth/account panel
 - Copy menu
 - Export menu
@@ -55,6 +56,8 @@
 
 - No server keys use `NEXT_PUBLIC_`.
 - YouVersion and AI keys are server-only.
+- AI provider keys are encrypted before Firestore storage.
+- AI connection docs are not readable through client Firestore rules; access goes through server routes.
 - Rendered/generated HTML is controlled or sanitized before display.
 - Contenteditable paste behavior is tested for unexpected HTML.
 - Account deletion/export path is added before public release.
@@ -71,15 +74,18 @@
 
 ## Hosting Launch
 
-- Build static export with `pnpm build`.
-- Deploy Firebase Hosting with `pnpm firebase:deploy:hosting`.
-- Verify the Firebase Hosting URL loads the app shell.
+- Build with `pnpm build`.
+- Deploy Next.js to Vercel with `pnpm deploy:vercel`.
+- Add the Vercel/custom domains to Firebase Auth authorized domains.
+- Verify the Vercel URL loads the app shell.
 - Verify Google sign-in on hosted URL.
 - Verify Firestore study memory after hosted sign-in.
+- Verify AI connect/status/disconnect with OpenAI and Anthropic test keys.
+- Verify live generation returns structured study JSON and saves memory.
 
 ## Known Not Built Yet
 
 - YouVersion REST adapter is built and smoke-tested, but live browser/mobile lookup still needs a server route.
-- Connect AI UI is present, but live verification and encrypted key storage need a server-side route.
+- Connect AI server routes are built; production verification needs Vercel env vars and provider test keys.
 - Direct provider exports are staged in the UI but not connected.
 - Account deletion/export path is required before public release.

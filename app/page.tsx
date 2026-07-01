@@ -33,7 +33,13 @@ import type { AdminSettings, AdminSnapshot, MemoryEntry, Study } from "@/lib/typ
 
 type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "ai" | "admin";
 type AiProviderId = "openai" | "anthropic";
-type AiConnectionState = "not_started" | "format_ready";
+type AiConnectionState = "not_started" | "checking" | "connected" | "error";
+type AiServerStatus = {
+  connected: boolean;
+  provider?: AiProviderId;
+  connectedAt?: string;
+  lastVerifiedAt?: string;
+};
 
 const aiProviders: Record<
   AiProviderId,
@@ -158,6 +164,8 @@ export default function Home() {
   const [aiKeyDraft, setAiKeyDraft] = useState("");
   const [aiConnectionState, setAiConnectionState] = useState<AiConnectionState>("not_started");
   const [aiConnectionMessage, setAiConnectionMessage] = useState("Choose a provider to begin.");
+  const [aiServerStatus, setAiServerStatus] = useState<AiServerStatus>({ connected: false });
+  const [aiBusy, setAiBusy] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const saveTimer = useRef<number | null>(null);
 
@@ -169,6 +177,15 @@ export default function Home() {
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 1800);
+  }
+
+  async function authHeaders() {
+    if (!user || user.uid === "local" || !("getIdToken" in user)) throw new Error("Sign in before connecting AI.");
+    const token = await user.getIdToken();
+    return {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json"
+    };
   }
 
   function currentMarkdownFromEditor() {
@@ -258,18 +275,41 @@ export default function Home() {
   async function handleGenerate() {
     clearPendingMemorySave();
     await saveCurrentMemory();
-    const result = await generateStudyDraft({ passage, translation, mode });
-    const nextStudy = result.study;
-    const nextMarkdown = buildMarkdown(nextStudy);
-    setGenerationStatus(result.backendStatus);
-    setStudy(nextStudy);
-    setMarkdown(nextMarkdown);
-    setEditableNote(nextMarkdown);
-    await rememberStudy(nextStudy, nextMarkdown);
-    showToast("Study generated.");
-    if (window.matchMedia("(max-width: 620px)").matches) {
-      setActiveTab("study");
-      window.setTimeout(() => document.querySelector(".workspace-panel")?.scrollIntoView({ behavior: "smooth" }), 50);
+    try {
+      let nextStudy: Study;
+      if (aiServerStatus.connected && firebaseConfigured && user?.uid !== "local") {
+        const response = await fetch("/api/generate-study", {
+          method: "POST",
+          headers: await authHeaders(),
+          body: JSON.stringify({ passage, translation, mode })
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || "Live generation failed.");
+        nextStudy = data.study as Study;
+        setGenerationStatus({
+          mode: "server-ready",
+          ready: true,
+          missing: [],
+          notes: [`Generated with connected ${data.provider === "anthropic" ? "Anthropic" : "OpenAI"} account.`]
+        });
+      } else {
+        const result = await generateStudyDraft({ passage, translation, mode });
+        nextStudy = result.study;
+        setGenerationStatus(result.backendStatus);
+      }
+
+      const nextMarkdown = buildMarkdown(nextStudy);
+      setStudy(nextStudy);
+      setMarkdown(nextMarkdown);
+      setEditableNote(nextMarkdown);
+      await rememberStudy(nextStudy, nextMarkdown);
+      showToast(aiServerStatus.connected ? "Live study generated." : "Study generated.");
+      if (window.matchMedia("(max-width: 620px)").matches) {
+        setActiveTab("study");
+        window.setTimeout(() => document.querySelector(".workspace-panel")?.scrollIntoView({ behavior: "smooth" }), 50);
+      }
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Study generation failed.");
     }
   }
 
@@ -417,19 +457,85 @@ export default function Home() {
     setAiConnectionMessage(`${aiProviders[provider].label} selected. Create a key, then paste it here when you come back.`);
   }
 
-  function checkAiKeyFormat() {
+  async function refreshAiStatus(showMessage = false) {
+    if (!firebaseConfigured || !user || user.uid === "local") {
+      setAiServerStatus({ connected: false });
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/ai/status", { headers: await authHeaders() });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "AI status unavailable.");
+      setAiServerStatus(data);
+      if (data.connected) {
+        setAiProvider(data.provider);
+        setAiConnectionState("connected");
+        setAiConnectionMessage(`${aiProviders[data.provider as AiProviderId].label} is connected and ready for live generation.`);
+      } else {
+        setAiConnectionState("not_started");
+        setAiConnectionMessage("Choose a provider to begin.");
+      }
+      if (showMessage) showToast("AI status refreshed.");
+    } catch (error) {
+      setAiServerStatus({ connected: false });
+      setAiConnectionState("error");
+      setAiConnectionMessage(error instanceof Error ? error.message : "AI status unavailable.");
+    }
+  }
+
+  async function connectAiProvider() {
     const provider = aiProviders[aiProvider];
     if (!provider.validateKey(aiKeyDraft)) {
-      setAiConnectionState("not_started");
+      setAiConnectionState("error");
       setAiConnectionMessage(`That does not look like a valid ${provider.label} API key yet. ${provider.keyHint}.`);
       return;
     }
 
-    setAiConnectionState("format_ready");
-    setAiConnectionMessage(
-      `${provider.label} key format looks right. Final verification and encrypted saving need the server-side connection route.`
-    );
-    showToast(`${provider.label} key format checked.`);
+    setAiBusy(true);
+    setAiConnectionState("checking");
+    setAiConnectionMessage(`Verifying ${provider.label} and saving the encrypted connection...`);
+    try {
+      const response = await fetch("/api/ai/connect", {
+        method: "POST",
+        headers: await authHeaders(),
+        body: JSON.stringify({ provider: aiProvider, apiKey: aiKeyDraft })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "AI connection failed.");
+      setAiKeyDraft("");
+      setAiServerStatus(data);
+      setAiConnectionState("connected");
+      setAiConnectionMessage(`${provider.label} is connected and ready for live generation.`);
+      showToast(`${provider.label} connected.`);
+    } catch (error) {
+      setAiConnectionState("error");
+      setAiConnectionMessage(error instanceof Error ? error.message : "AI connection failed.");
+    } finally {
+      setAiBusy(false);
+    }
+  }
+
+  async function disconnectAiProvider() {
+    setAiBusy(true);
+    setAiConnectionMessage("Disconnecting AI provider...");
+    try {
+      const response = await fetch("/api/ai/disconnect", {
+        method: "POST",
+        headers: await authHeaders()
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Disconnect failed.");
+      setAiServerStatus({ connected: false });
+      setAiConnectionState("not_started");
+      setAiConnectionMessage("AI provider disconnected.");
+      showToast("AI disconnected.");
+    } catch (error) {
+      setAiConnectionState("error");
+      setAiConnectionMessage(error instanceof Error ? error.message : "Disconnect failed.");
+    } finally {
+      setAiBusy(false);
+    }
   }
 
   function clearAiKeyDraft() {
@@ -470,6 +576,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!authReady || !user) return;
+    void refreshAiStatus();
     void loadMemoryEntries(user.uid).then((entries) => {
       setMemoryEntries(entries);
       const firstEntry = entries[0];
@@ -843,9 +950,15 @@ export default function Home() {
             <div className="ai-status-card">
               <div>
                 <span>Connection Status</span>
-                <strong>{aiConnectionState === "format_ready" ? "Ready For Backend Verification" : "Not Connected"}</strong>
+                <strong>{aiConnectionState === "connected" ? "Connected" : aiConnectionState === "checking" ? "Checking" : "Not Connected"}</strong>
               </div>
               <p>{aiConnectionMessage}</p>
+              {aiServerStatus.connected ? (
+                <small>
+                  {aiProviders[aiServerStatus.provider || aiProvider].label} · verified{" "}
+                  {aiServerStatus.lastVerifiedAt ? formatMemoryDate(aiServerStatus.lastVerifiedAt) : "recently"}
+                </small>
+              ) : null}
             </div>
 
             <div className="ai-provider-grid">
@@ -888,7 +1001,7 @@ export default function Home() {
                   <span>2</span>
                   <div>
                     <h3>Paste and check</h3>
-                    <p>The key is held only in this form right now. It is not saved by this static app.</p>
+                    <p>The key is sent to the secure server route for verification and encrypted storage. It is never displayed again.</p>
                     <label className="field">
                       <span>{aiProviders[aiProvider].label} API Key</span>
                       <input
@@ -904,12 +1017,17 @@ export default function Home() {
                       />
                     </label>
                     <div className="ai-action-row">
-                      <button type="button" className="primary-action compact-action" onClick={checkAiKeyFormat}>
-                        Check Key
+                      <button type="button" className="primary-action compact-action" onClick={() => void connectAiProvider()} disabled={aiBusy}>
+                        {aiBusy ? "Connecting..." : "Verify And Connect"}
                       </button>
                       <button type="button" className="secondary-action compact-action" onClick={clearAiKeyDraft}>
                         Clear
                       </button>
+                      {aiServerStatus.connected ? (
+                        <button type="button" className="secondary-action compact-action" onClick={() => void disconnectAiProvider()} disabled={aiBusy}>
+                          Disconnect
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </article>
@@ -918,8 +1036,8 @@ export default function Home() {
                   <div>
                     <h3>Verify and connect</h3>
                     <p>
-                      The next implementation step is a server route that sends a tiny test request, encrypts the key, and
-                      stores only the encrypted version for this user.
+                      Once connected, the Generate button uses your encrypted provider connection for live study drafts.
+                      You can disconnect or replace the key at any time.
                     </p>
                   </div>
                 </article>

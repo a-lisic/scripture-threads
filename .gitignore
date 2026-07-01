@@ -11,3 +11,4 @@ ui-debug.log
 *.tsbuildinfo
 .tools/
 .firebase/
+.vercel
