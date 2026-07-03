@@ -36,10 +36,12 @@ import {
   saveObsidianSettings
 } from "@/lib/obsidianConnector";
 import { generateStudy } from "@/lib/study";
+import { buildStudyPrompt, parseStudyJson } from "@/lib/studyPrompt";
 import type { AdminSettings, AdminSnapshot, MemoryEntry, ObsidianConnectorSettings, Study } from "@/lib/types";
 
 type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "ai" | "admin";
 type AiProviderId = "openai" | "anthropic";
+type AiRouteId = "codex-cli" | "openai" | "anthropic" | "prompt-handoff";
 type AiConnectionState = "not_started" | "checking" | "connected" | "error";
 type AiServerStatus = {
   connected: boolean;
@@ -89,6 +91,28 @@ const fallbackTranslationOptions: TranslationOption[] = [
   { value: "CSB", label: "CSB", available: false },
   { value: "NLT", label: "NLT", available: false }
 ];
+
+const DEFAULT_AI_ROUTING_SETTINGS = {
+  primaryPath: "codex-cli" as AiRouteId,
+  secondaryPath: "openai" as AiRouteId,
+  codexBridgeUrl: "http://127.0.0.1:4517"
+};
+
+const aiRouteLabels: Record<AiRouteId, string> = {
+  "codex-cli": "Codex CLI",
+  openai: "OpenAI",
+  anthropic: "Anthropic",
+  "prompt-handoff": "Prompt handoff"
+};
+
+const aiRouteDescriptions: Record<AiRouteId, string> = {
+  "codex-cli": "Desktop only. Uses a small local bridge to send the structured prompt to your signed-in Codex CLI.",
+  openai: "Uses the encrypted OpenAI connection saved for this account.",
+  anthropic: "Uses the encrypted Anthropic connection saved for this account.",
+  "prompt-handoff": "Copies a structured prompt so you can use ChatGPT or Claude manually, then paste the JSON back in."
+};
+
+type AiRoutingSettings = typeof DEFAULT_AI_ROUTING_SETTINGS;
 
 function inlineNodeToMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
@@ -183,6 +207,10 @@ export default function Home() {
   const [aiConnectionMessage, setAiConnectionMessage] = useState("Choose a provider to begin.");
   const [aiServerStatus, setAiServerStatus] = useState<AiServerStatus>({ connected: false });
   const [aiBusy, setAiBusy] = useState(false);
+  const [aiRoutingSettings, setAiRoutingSettings] = useState<AiRoutingSettings>(DEFAULT_AI_ROUTING_SETTINGS);
+  const [codexBridgeState, setCodexBridgeState] = useState<"unknown" | "checking" | "ready" | "unavailable">("unknown");
+  const [promptHandoffText, setPromptHandoffText] = useState("");
+  const [aiImportDraft, setAiImportDraft] = useState("");
   const [translationOptions, setTranslationOptions] = useState<TranslationOption[]>(fallbackTranslationOptions);
   const [translationStatus, setTranslationStatus] = useState("Loading YouVersion translations...");
   const [obsidianSettings, setObsidianSettings] =
@@ -200,6 +228,40 @@ export default function Home() {
   function showToast(message: string) {
     setToast(message);
     window.setTimeout(() => setToast(""), 4200);
+  }
+
+  function currentStudyInput() {
+    return {
+      passage: passage.trim() || "Untitled Passage",
+      translation: translation.trim() || "CSB",
+      mode: mode.trim() || "Guided Deep Study"
+    };
+  }
+
+  function isMobileRuntime() {
+    return (
+      window.matchMedia("(max-width: 760px)").matches ||
+      /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent)
+    );
+  }
+
+  function saveAiRoutingSettings(nextSettings: AiRoutingSettings) {
+    setAiRoutingSettings(nextSettings);
+    window.localStorage.setItem("scripture-threads-ai-routing", JSON.stringify(nextSettings));
+    showToast("AI routing saved.");
+  }
+
+  function setGeneratedStudy(nextStudy: Study, toastMessage: string) {
+    const nextMarkdown = buildMarkdown(nextStudy);
+    setStudy(nextStudy);
+    setMarkdown(nextMarkdown);
+    setEditableNote(nextMarkdown);
+    rememberStudy(nextStudy, nextMarkdown);
+    showToast(toastMessage);
+    if (window.matchMedia("(max-width: 620px)").matches) {
+      setActiveTab("study");
+      window.setTimeout(() => document.querySelector(".workspace-panel")?.scrollIntoView({ behavior: "smooth" }), 50);
+    }
   }
 
   async function authHeaders() {
@@ -284,6 +346,92 @@ export default function Home() {
     persistEntries(nextEntries, entry);
   }
 
+  async function generateWithConnectedProvider(route: AiProviderId) {
+    if (!aiServerStatus.connected || aiServerStatus.provider !== route) {
+      throw new Error(`${aiRouteLabels[route]} is not connected for this account.`);
+    }
+
+    const response = await fetch("/api/generate-study", {
+      method: "POST",
+      headers: await authHeaders(),
+      body: JSON.stringify(currentStudyInput())
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || "Live generation failed.");
+    setGenerationStatus({
+      mode: "server-ready",
+      ready: true,
+      missing: [],
+      notes: [`Generated with connected ${data.provider === "anthropic" ? "Anthropic" : "OpenAI"} account.`]
+    });
+    return data.study as Study;
+  }
+
+  async function checkCodexBridge(showMessage = true) {
+    const url = aiRoutingSettings.codexBridgeUrl.replace(/\/$/, "");
+    setCodexBridgeState("checking");
+    try {
+      const response = await fetch(`${url}/health`, { method: "GET" });
+      if (!response.ok) throw new Error(`Bridge returned ${response.status}.`);
+      setCodexBridgeState("ready");
+      if (showMessage) showToast("Codex CLI bridge is reachable.");
+      return true;
+    } catch {
+      setCodexBridgeState("unavailable");
+      if (showMessage) showToast("Codex CLI bridge is not reachable on this device.");
+      return false;
+    }
+  }
+
+  async function generateWithCodexBridge() {
+    if (isMobileRuntime()) {
+      throw new Error("Codex CLI bridge only works from a desktop browser on the same machine.");
+    }
+
+    const input = currentStudyInput();
+    const url = aiRoutingSettings.codexBridgeUrl.replace(/\/$/, "");
+    const response = await fetch(`${url}/generate-study`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...input,
+        prompt: buildStudyPrompt(input)
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data?.error || "Codex CLI bridge generation failed.");
+    setCodexBridgeState("ready");
+    setGenerationStatus({
+      mode: "server-ready",
+      ready: true,
+      missing: [],
+      notes: ["Generated through the local Codex CLI bridge."]
+    });
+    if (data.study) return data.study as Study;
+    if (data.output) return parseStudyJson(String(data.output), input);
+    throw new Error("Codex CLI bridge did not return an importable study.");
+  }
+
+  async function copyPromptHandoff(openChat = false) {
+    const prompt = buildStudyPrompt(currentStudyInput());
+    setPromptHandoffText(prompt);
+    try {
+      await navigator.clipboard.writeText(prompt);
+      showToast("Structured prompt copied.");
+    } catch {
+      showToast("Prompt ready below. Copy it from the AI tab.");
+    }
+    if (openChat) window.open("https://chatgpt.com/", "_blank", "noopener,noreferrer");
+    setActiveTab("ai");
+  }
+
+  async function runAiRoute(route: AiRouteId) {
+    if (route === "codex-cli") return generateWithCodexBridge();
+    if (route === "openai" || route === "anthropic") return generateWithConnectedProvider(route);
+    await copyPromptHandoff(true);
+    throw new Error("Prompt handoff is ready. Paste the JSON response back into the AI tab.");
+  }
+
   async function loadMemoryEntry(id: string, notify = true) {
     clearPendingMemorySave();
     saveCurrentMemory();
@@ -305,52 +453,31 @@ export default function Home() {
     saveCurrentMemory();
     setGenerating(true);
     try {
-      let nextStudy: Study;
-      if (aiServerStatus.connected && firebaseConfigured && user?.uid !== "local") {
-        const response = await fetch("/api/generate-study", {
-          method: "POST",
-          headers: await authHeaders(),
-          body: JSON.stringify({ passage, translation, mode })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data?.error || "Live generation failed.");
-        nextStudy = data.study as Study;
-        setGenerationStatus({
-          mode: "server-ready",
-          ready: true,
-          missing: [],
-          notes: [`Generated with connected ${data.provider === "anthropic" ? "Anthropic" : "OpenAI"} account.`]
-        });
-      } else {
-        const result = await generateStudyDraft({ passage, translation, mode });
-        nextStudy = result.study;
-        setGenerationStatus(result.backendStatus);
+      const routes = [
+        isMobileRuntime() && aiRoutingSettings.primaryPath === "codex-cli"
+          ? aiRoutingSettings.secondaryPath
+          : aiRoutingSettings.primaryPath,
+        aiRoutingSettings.secondaryPath
+      ].filter((route, index, list) => list.indexOf(route) === index);
+
+      let lastError: Error | null = null;
+      for (const route of routes) {
+        try {
+          const nextStudy = await runAiRoute(route);
+          setGeneratedStudy(nextStudy, `${aiRouteLabels[route]} study generated.`);
+          return;
+        } catch (error) {
+          lastError = error instanceof Error ? error : new Error("Generation route failed.");
+          if (route === "prompt-handoff") return;
+        }
       }
 
-      const nextMarkdown = buildMarkdown(nextStudy);
-      setStudy(nextStudy);
-      setMarkdown(nextMarkdown);
-      setEditableNote(nextMarkdown);
-      rememberStudy(nextStudy, nextMarkdown);
-      showToast(aiServerStatus.connected ? "Live study generated." : "Study generated.");
-      if (window.matchMedia("(max-width: 620px)").matches) {
-        setActiveTab("study");
-        window.setTimeout(() => document.querySelector(".workspace-panel")?.scrollIntoView({ behavior: "smooth" }), 50);
-      }
+      throw lastError || new Error("No AI route is ready.");
     } catch (error) {
       try {
         const fallback = await generateStudyDraft({ passage, translation, mode });
-        const nextMarkdown = buildMarkdown(fallback.study);
-        setStudy(fallback.study);
         setGenerationStatus(fallback.backendStatus);
-        setMarkdown(nextMarkdown);
-        setEditableNote(nextMarkdown);
-        rememberStudy(fallback.study, nextMarkdown);
-        showToast(
-          error instanceof Error
-            ? `Live generation failed; scaffold created. ${error.message}`
-            : "Live generation failed; scaffold created."
-        );
+        setGeneratedStudy(fallback.study, error instanceof Error ? `Scaffold created. ${error.message}` : "Scaffold created.");
       } catch {
         showToast(error instanceof Error ? error.message : "Study generation failed.");
       }
@@ -657,6 +784,20 @@ export default function Home() {
     setAiConnectionMessage(`${aiProviders[aiProvider].label} key cleared from this browser session.`);
   }
 
+  async function importAiResponse() {
+    if (!aiImportDraft.trim()) {
+      showToast("Paste an AI JSON response first.");
+      return;
+    }
+    try {
+      const nextStudy = parseStudyJson(aiImportDraft, currentStudyInput());
+      setGeneratedStudy(nextStudy, "AI response imported.");
+      setAiImportDraft("");
+    } catch (error) {
+      showToast(error instanceof Error ? `Import failed. ${error.message}` : "Import failed.");
+    }
+  }
+
   useEffect(() => {
     const auth = getFirebaseAuth();
     if (!auth) {
@@ -685,6 +826,16 @@ export default function Home() {
       canceled = true;
       unsubscribe?.();
     };
+  }, []);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem("scripture-threads-ai-routing");
+    if (!saved) return;
+    try {
+      setAiRoutingSettings({ ...DEFAULT_AI_ROUTING_SETTINGS, ...JSON.parse(saved) });
+    } catch {
+      window.localStorage.removeItem("scripture-threads-ai-routing");
+    }
   }, []);
 
   useEffect(() => {
@@ -1138,10 +1289,9 @@ export default function Home() {
         <section id="aiTab" className={`tab-panel ${activeTab === "ai" ? "active" : ""}`} aria-label="AI connection">
           <div className="ai-panel">
             <div className="memory-header">
-              <h2>Connect AI</h2>
+              <h2>AI Routing</h2>
               <p>
-                Use your own OpenAI or Anthropic account to power study generation. Scripture Threads should guide the setup,
-                verify the key, and save it encrypted once the backend connection route is added.
+                Choose the first path Scripture Threads should try, plus the fallback path for mobile or unavailable desktop tools.
               </p>
             </div>
 
@@ -1157,6 +1307,112 @@ export default function Home() {
                   {aiServerStatus.lastVerifiedAt ? formatMemoryDate(aiServerStatus.lastVerifiedAt) : "recently"}
                 </small>
               ) : null}
+            </div>
+
+            <section className="ai-connection-section ai-routing-section" aria-label="AI routing preferences">
+              <div className="connector-grid">
+                <label className="field">
+                  <span>Primary Path</span>
+                  <select
+                    value={aiRoutingSettings.primaryPath}
+                    onChange={(event) =>
+                      setAiRoutingSettings({ ...aiRoutingSettings, primaryPath: event.target.value as AiRouteId })
+                    }
+                  >
+                    {(Object.keys(aiRouteLabels) as AiRouteId[]).map((route) => (
+                      <option value={route} key={`primary-${route}`}>
+                        {aiRouteLabels[route]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>Secondary Path</span>
+                  <select
+                    value={aiRoutingSettings.secondaryPath}
+                    onChange={(event) =>
+                      setAiRoutingSettings({ ...aiRoutingSettings, secondaryPath: event.target.value as AiRouteId })
+                    }
+                  >
+                    {(Object.keys(aiRouteLabels) as AiRouteId[]).map((route) => (
+                      <option value={route} key={`secondary-${route}`}>
+                        {aiRouteLabels[route]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field connector-wide-field">
+                  <span>Codex Bridge URL</span>
+                  <input
+                    value={aiRoutingSettings.codexBridgeUrl}
+                    onChange={(event) => setAiRoutingSettings({ ...aiRoutingSettings, codexBridgeUrl: event.target.value })}
+                    autoComplete="off"
+                  />
+                </label>
+              </div>
+              <div className="ai-route-summary">
+                {[aiRoutingSettings.primaryPath, aiRoutingSettings.secondaryPath]
+                  .filter((route, index, list) => list.indexOf(route) === index)
+                  .map((route) => (
+                    <article key={route}>
+                      <strong>{aiRouteLabels[route]}</strong>
+                      <span>{aiRouteDescriptions[route]}</span>
+                    </article>
+                  ))}
+              </div>
+              <div className="ai-action-row">
+                <button type="button" className="primary-action compact-action" onClick={() => saveAiRoutingSettings(aiRoutingSettings)}>
+                  Save Routing
+                </button>
+                <button type="button" className="secondary-action compact-action" onClick={() => void checkCodexBridge()}>
+                  {codexBridgeState === "checking" ? "Checking..." : "Check Codex Bridge"}
+                </button>
+                <span className={`route-status ${codexBridgeState}`}>Bridge: {codexBridgeState}</span>
+              </div>
+            </section>
+
+            <section className="ai-connection-section" aria-label="Prompt handoff">
+              <div className="connector-heading">
+                <div>
+                  <h3>Prompt Handoff</h3>
+                  <p>Use this when you are on mobile or do not want to connect an API key. Copy the prompt, run it in ChatGPT or Claude, then paste the JSON response back here.</p>
+                </div>
+              </div>
+              <div className="ai-action-row">
+                <button type="button" className="secondary-action compact-action" onClick={() => void copyPromptHandoff(false)}>
+                  Copy Structured Prompt
+                </button>
+                <button type="button" className="secondary-action compact-action" onClick={() => void copyPromptHandoff(true)}>
+                  Copy And Open ChatGPT
+                </button>
+              </div>
+              {promptHandoffText ? (
+                <label className="field">
+                  <span>Latest Prompt</span>
+                  <textarea value={promptHandoffText} readOnly />
+                </label>
+              ) : null}
+              <label className="field">
+                <span>Import AI JSON Response</span>
+                <textarea
+                  value={aiImportDraft}
+                  onChange={(event) => setAiImportDraft(event.target.value)}
+                  placeholder="Paste the JSON response here, then import it into your editable study note."
+                />
+              </label>
+              <div className="ai-action-row">
+                <button type="button" className="primary-action compact-action" onClick={() => void importAiResponse()}>
+                  Import Response
+                </button>
+                <button type="button" className="secondary-action compact-action" onClick={() => setAiImportDraft("")}>
+                  Clear Import
+                </button>
+              </div>
+            </section>
+
+            <div className="memory-header ai-provider-heading">
+              <h2>Provider Keys</h2>
+              <p>OpenAI or Anthropic keys are still useful as a secondary path, especially from mobile.</p>
             </div>
 
             <div className="ai-provider-grid">
@@ -1234,7 +1490,7 @@ export default function Home() {
                   <div>
                     <h3>Verify and connect</h3>
                     <p>
-                      Once connected, the Generate button uses your encrypted provider connection for live study drafts.
+                      Once connected, this provider can be used as a primary or secondary generation path.
                       You can disconnect or replace the key at any time.
                     </p>
                   </div>

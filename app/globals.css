@@ -844,6 +844,61 @@ button:disabled {
   padding: 16px;
 }
 
+.ai-routing-section {
+  display: grid;
+  gap: 14px;
+}
+
+.ai-route-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.ai-route-summary article {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(222, 219, 210, 0.9);
+  border-radius: 8px;
+  background: rgba(240, 242, 236, 0.52);
+  padding: 11px 12px;
+}
+
+.ai-route-summary strong {
+  color: var(--accent-strong);
+  font-size: 0.92rem;
+}
+
+.ai-route-summary span,
+.route-status {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.route-status {
+  align-self: center;
+  border-radius: 999px;
+  background: rgba(99, 117, 105, 0.1);
+  padding: 5px 9px;
+  text-transform: uppercase;
+}
+
+.route-status.ready {
+  background: rgba(99, 117, 105, 0.16);
+  color: var(--accent-strong);
+}
+
+.route-status.unavailable {
+  background: rgba(138, 89, 97, 0.12);
+  color: var(--rose);
+}
+
+.ai-provider-heading {
+  margin-bottom: 0;
+}
+
 .ai-step-list {
   display: grid;
   gap: 16px;
@@ -1340,6 +1395,10 @@ button:disabled {
   }
 
   .ai-provider-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-route-summary {
     grid-template-columns: 1fr;
   }
 

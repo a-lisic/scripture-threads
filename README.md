@@ -1,6 +1,6 @@
 # Scripture Threads
 
-Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, guided AI provider connection, encrypted server-side AI key storage on Vercel, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, claim-ledger/source metadata, and staged destination options.
+Scripture Threads is a Next.js Bible study workspace for generating, editing, remembering, and exporting structured study notes. The current build supports Google Auth with Firebase, Firestore-backed study memory, guided AI routing, encrypted server-side AI key storage on Vercel, optional desktop Codex CLI bridge generation, prompt handoff/import, editable notes, markdown/rich/plain copy, markdown download, PDF print export, entity/link previews, claim-ledger/source metadata, and staged destination options.
 
 ## Local Setup
 
@@ -104,6 +104,29 @@ Known follow-up:
 - Google sign-in and Firestore memory are verified on Firebase Hosting in normal Chrome. Re-test on the Vercel URL after the first production deploy and add the Vercel/custom domains to Firebase Auth authorized domains.
 - `YOUVERSION_APP_KEY` is server-only. The REST adapter and smoke test are built; the next step is routing live Bible text through Vercel API routes.
 - Live AI generation now has Vercel API routes for connect/status/disconnect/generate. Production use requires Vercel env vars for Firebase Admin and encryption.
+
+## AI Routing
+
+The AI tab supports three generation paths:
+
+- Codex CLI desktop bridge: a local-only bridge for desktop browsers on the same machine as a signed-in Codex CLI.
+- OpenAI or Anthropic provider keys: encrypted per-user server-side connections, useful as a mobile fallback.
+- Prompt handoff: copy a structured prompt into ChatGPT or Claude, then paste the JSON response back into Scripture Threads.
+
+Start the local Codex bridge after signing into Codex CLI:
+
+```bash
+codex login
+pnpm codex:bridge
+```
+
+The bridge listens on:
+
+```text
+http://127.0.0.1:4517
+```
+
+Keep the terminal open while using Codex CLI as the desktop generation route. Do not expose the bridge on a public network.
 
 ## Backend Strategy
 

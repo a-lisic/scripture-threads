@@ -9,6 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "youversion:smoke": "node scripts/youversion-smoke.mjs",
+    "codex:bridge": "node scripts/codex-cli-bridge.mjs",
     "deploy:vercel": "vercel --prod",
     "firebase:deploy:firestore": "firebase deploy --only firestore:rules,firestore:indexes",
     "firebase:deploy:hosting": "firebase deploy --only hosting",
