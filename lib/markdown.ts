@@ -17,11 +17,6 @@ function simpleList(items: string[]) {
   return items.map((item) => `- ${item}`).join("\n");
 }
 
-function detailList(details: string[] = []) {
-  if (!details.length) return "";
-  return `\n\n${details.map((detail) => `- ${detail}`).join("\n")}`;
-}
-
 function titledList(title: string, items: string[] = []) {
   if (!items.length) return "";
   return `\n\n**${title}:**\n${items.map((item) => `- ${item}`).join("\n")}`;
@@ -52,12 +47,12 @@ export function buildMarkdown(study: Study) {
     .join("\n\n");
   const crossRefs = study.crossReferences.length
     ? study.crossReferences.map(([ref, connection]) => `- ${ref} - ${connection}`).join("\n")
-    : "- Add cross references with connection notes.";
+    : "";
   const translationNotes = study.translationNotes.length
     ? study.translationNotes
         .map((item) => `- ${item.reference} (${item.translations.join(", ")}) - ${item.note}`)
         .join("\n")
-    : "- Add selective translation notes only when wording differences help the study.";
+    : "";
   const claimLedger = study.claimLedger.length
     ? study.claimLedger
         .map(
@@ -65,7 +60,7 @@ export function buildMarkdown(study: Study) {
             `| ${markdownTableCell(item.claim)} | ${markdownTableCell(item.evidence)} | ${item.sourceType} | ${item.confidence} |`
         )
         .join("\n")
-    : "| Add claim | Add evidence | scripture | possible |";
+    : "";
   const sourceRecords = study.sourceRecords.length
     ? study.sourceRecords
         .map((item) => {
@@ -75,13 +70,13 @@ export function buildMarkdown(study: Study) {
           return `- ${item.label} (${item.type}).${ref}${url}${note}`.trim();
         })
         .join("\n")
-    : "- Add source records.";
+    : "";
   const closingThreads = [
     ...study.application.slice(0, 2).map((item) => `- ${item}`),
     ...study.questions.slice(0, 2).map((item) => `- ${item}`)
   ].join("\n");
 
-  return `---\ntype: bible-study\npassage: "${escapeYamlString(study.passage)}"\ntranslation: "${escapeYamlString(study.translation)}"\nmode: "${escapeYamlString(study.mode)}"\ndate: ${new Date().toISOString().slice(0, 10)}\nbook: "${escapeYamlString(study.book)}"\nsource_profile: "${escapeYamlString(study.sourceProfile)}"\ngeneration_status: "${escapeYamlString(study.generationStatus)}"\n${yamlField("book_links", study.bookLinks)}\n${yamlField("people", study.people)}\n${yamlField("places", study.places)}\n${yamlField("groups", study.groups)}\n${yamlField("story_context", study.storyContext)}\n${yamlField("event_threads", study.eventThreads)}\n${yamlField("entity_links", study.entityLinks)}\n${yamlField("themes", study.themes)}\n${yamlField("tags", study.tags)}\n${yamlField("sources", study.sources)}\nstatus: draft\n---\n\n[[A - Faith]] [[R - Study Notes]] ${study.bookLinks.join(" ")}\n\n# ${study.passage} Study Notes\n\n## Big Idea\n\n${study.bigIdea}\n\n## Context\n\n${study.context.join("\n\n")}\n\n## Passage Map\n\n| Section | Movement | Main Emphasis |\n|---|---|---|\n${passageRows}\n\n## Verse Notes\n\n${verseNotes}\n${closingThreads ? `\n\n## Closing Threads\n\n${closingThreads}` : ""}\n\n## Cross-References\n\n${crossRefs}\n\n## Translation Notes\n\n${translationNotes}\n\n## Claim Ledger\n\n| Claim | Evidence | Source Type | Confidence |\n|---|---|---|---|\n${claimLedger}\n\n## Source Records\n\n${sourceRecords}\n\n## Source Notes\n\n${simpleList(study.sourceNotes)}\n`;
+  return `---\ntype: bible-study\npassage: "${escapeYamlString(study.passage)}"\ntranslation: "${escapeYamlString(study.translation)}"\nmode: "${escapeYamlString(study.mode)}"\ndate: ${new Date().toISOString().slice(0, 10)}\nbook: "${escapeYamlString(study.book)}"\nsource_profile: "${escapeYamlString(study.sourceProfile)}"\ngeneration_status: "${escapeYamlString(study.generationStatus)}"\n${yamlField("book_links", study.bookLinks)}\n${yamlField("tags", study.tags)}\n${yamlField("sources", study.sources)}\nstatus: draft\n---\n\n[[A - Faith]] [[R - Study Notes]] ${study.bookLinks.join(" ")}\n\n# ${study.passage} Study Notes\n\n## Big Idea\n\n${study.bigIdea}\n\n## Context\n\n${study.context.join("\n\n")}\n\n## Passage Map\n\n| Section | Movement | Main Emphasis |\n|---|---|---|\n${passageRows}\n\n## Verse Notes\n\n${verseNotes}\n${closingThreads ? `\n\n## Closing Threads\n\n${closingThreads}` : ""}${crossRefs ? `\n\n## Cross-References\n\n${crossRefs}` : ""}${translationNotes ? `\n\n## Translation Notes\n\n${translationNotes}` : ""}${claimLedger ? `\n\n## Claim Ledger\n\n| Claim | Evidence | Source Type | Confidence |\n|---|---|---|---|\n${claimLedger}` : ""}${sourceRecords ? `\n\n## Source Records\n\n${sourceRecords}` : ""}${study.sourceNotes.length ? `\n\n## Source Notes\n\n${simpleList(study.sourceNotes)}` : ""}\n`;
 }
 
 export function escapeHtml(value: string) {

@@ -20,7 +20,7 @@ import {
 import { exportDestinations } from "@/lib/exportDestinations";
 import { getFirebaseAuth, googleProvider, isFirebaseConfigured } from "@/lib/firebase";
 import { generateStudyDraft, getGenerationBackendStatus, type GenerationBackendStatus } from "@/lib/generationPipeline";
-import { buildMarkdown, escapeHtml, extractPreamble, renderMarkdownPreview, wikilinkLabel } from "@/lib/markdown";
+import { buildMarkdown, extractPreamble, renderMarkdownPreview } from "@/lib/markdown";
 import {
   createMemoryEntry,
   deleteMemoryEntry,
@@ -39,7 +39,7 @@ import { generateStudy } from "@/lib/study";
 import { buildStudyPrompt, parseStudyJson } from "@/lib/studyPrompt";
 import type { AdminSettings, AdminSnapshot, MemoryEntry, ObsidianConnectorSettings, Study } from "@/lib/types";
 
-type TabId = "study" | "export" | "entities" | "memory" | "destinations" | "ai" | "admin";
+type TabId = "study" | "export" | "memory" | "destinations" | "ai" | "admin";
 type AiProviderId = "openai" | "anthropic";
 type AiRouteId = "codex-cli" | "openai" | "anthropic" | "prompt-handoff";
 type AiConnectionState = "not_started" | "checking" | "connected" | "error";
@@ -1034,7 +1034,6 @@ export default function Home() {
           {[
             ["study", "Study"],
             ["export", "Edit Note"],
-            ["entities", "Entities"],
             ["memory", "Memory"],
             ["destinations", "Destinations"],
             ["ai", "AI"],
@@ -1080,72 +1079,6 @@ export default function Home() {
               document.execCommand("insertText", false, text);
             }}
           />
-        </section>
-
-        <section
-          id="entitiesTab"
-          className={`tab-panel ${activeTab === "entities" ? "active" : ""}`}
-          aria-label="Entity review"
-        >
-          {study ? (
-            <div className="entity-layout">
-              {[
-                ["People", study.people, true],
-                ["Places", study.places, true],
-                ["Groups", study.groups, true],
-                ["Story Context", study.storyContext, false],
-                ["Event Threads", study.eventThreads, true]
-              ].map(([label, items, copyWikilinks]) => (
-                <section key={label as string}>
-                  <h2>{label as string}</h2>
-                  <ul className={copyWikilinks ? "link-list" : "plain-list"}>
-                    {(items as string[]).length ? (
-                      (items as string[]).map((item) => (
-                        <li key={item}>
-                          {copyWikilinks ? (
-                            <button
-                              type="button"
-                              className="entity-chip"
-                              title={`Copy ${item}`}
-                              onClick={async () => {
-                                try {
-                                  await navigator.clipboard.writeText(item);
-                                  showToast(`${wikilinkLabel(item)} link copied.`);
-                                } catch {
-                                  showToast(item);
-                                }
-                              }}
-                            >
-                              {wikilinkLabel(item)}
-                            </button>
-                          ) : (
-                            <span dangerouslySetInnerHTML={{ __html: escapeHtml(item) }} />
-                          )}
-                        </li>
-                      ))
-                    ) : (
-                      <li>None suggested.</li>
-                    )}
-                  </ul>
-                </section>
-              ))}
-              <section>
-                <h2>Themes And Tags</h2>
-                <div className="pill-group">
-                  {study.themes.map((item) => (
-                    <span className="pill theme" key={`theme-${item}`}>
-                      theme: {item}
-                    </span>
-                  ))}
-                  {study.tags.map((item) => (
-                    <span className="pill tag" key={`tag-${item}`}>
-                      tag: {item}
-                    </span>
-                  ))}
-                </div>
-              </section>
-            </div>
-          ) : null}
         </section>
 
         <section id="memoryTab" className={`tab-panel ${activeTab === "memory" ? "active" : ""}`} aria-label="Study memory">

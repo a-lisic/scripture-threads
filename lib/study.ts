@@ -37,7 +37,7 @@ export function generateStudy(passage: string, translation: string, mode: string
     storyContext: [],
     eventThreads: [],
     entityLinks: [],
-    themes: ["context", "observation", "application"],
+    themes: [],
     tags: ["study"],
     sources: ["Scripture"],
     bigIdea:
