@@ -883,12 +883,7 @@ export default function Home() {
         ["Book", study.book],
         ["Translation", study.translation],
         ["Mode", study.mode],
-        ["Source Profile", study.sourceProfile],
-        ["Generation", study.generationStatus],
-        ["Tags", study.tags.join(", ") || "none"],
-        ["Themes", study.themes.length.toString()],
-        ["Entities", study.entityLinks.length.toString()],
-        ["Claims", study.claimLedger.length.toString()]
+        ["Tags", study.tags.join(", ") || "none"]
       ]
     : [];
 

@@ -40,6 +40,7 @@ export type VerseNote = {
   guardrails?: string[];
   application?: string[];
   crossReferences?: CrossReference[];
+  reflection?: string[];
   keep: string;
 };
 

@@ -517,6 +517,16 @@ button:disabled {
   font-size: 0.82rem;
 }
 
+.markdown-preview .source-notes-table {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.markdown-preview .source-notes-table th,
+.markdown-preview .source-notes-table td {
+  padding: 7px 8px;
+}
+
 .markdown-preview .source-notes-list li {
   line-height: 1.45;
 }

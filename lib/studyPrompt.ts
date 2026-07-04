@@ -30,6 +30,7 @@ export function studySchemaInstructions() {
     "guardrails"?: string[],
     "application"?: string[],
     "crossReferences"?: [string, string][],
+    "reflection"?: string[],
     "keep": string
   }>,
   "crossReferences": [string, string][],
@@ -53,8 +54,20 @@ Doctrinal posture: Scripture-first evangelical, non-denominational, continuation
 Requirements:
 - Do not invent commentary citations or claim direct source support you do not have.
 - Keep chunks usable, not bloated.
-- Integrate application, cross references, context, and guardrails inside the verse-by-verse notes.
+- The main depth belongs inside the verse-by-verse walkthrough, not in a large ending summary.
+- Each verse/section note should move beyond historical facts into textual meaning, key word observations, cultural or covenant context, cross references, and present-day application where the text supports it.
+- Use the verseNotes array as the primary study experience. Group verses naturally when needed, but make each section substantial enough to help someone study.
+- For each verseNotes item:
+  - note: 2-4 sentences explaining what is happening in the text and why it matters.
+  - details: 3-6 bullets that may include word meaning, historical/cultural background, canonical context, literary movement, and careful observations.
+  - crossReferences: 1-3 relevant references with a short sentence explaining the connection.
+  - application: 1-3 grounded application bullets woven from the text, not generic advice.
+  - reflection: 1-2 questions that help the reader personally wrestle with this section.
+  - guardrails: include only when needed to prevent overreading, flattening, or unsupported leaps.
+  - keep: one concise key note or life-application sentence for this section.
+- Keep questions and application at the end short: 0-2 overarching items only if they genuinely summarize the whole passage.
 - Include short cross-reference connection statements.
+- Make tags refined and reusable: 3-5 lowercase thematic tags, not every entity, detail, or one-time idea.
 - Use Obsidian wikilinks for book/person/place/entity arrays, such as [[2 Chronicles]].
 - If exact Bible translation text is not supplied, summarize rather than quoting full copyrighted passages.
 - Be explicit when a point is application rather than direct textual claim.
@@ -75,6 +88,19 @@ export function extractJson(text: string) {
 
 export function normalizeGeneratedStudy(value: unknown, input: { passage: string; translation: string; mode: string }): Study {
   const data = value && typeof value === "object" ? (value as Partial<Study>) : {};
+  const tags = (data.tags || [])
+    .map((tag) =>
+      tag
+        .replace(/^#/, "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "")
+    )
+    .filter(Boolean)
+    .filter((tag, index, list) => list.indexOf(tag) === index)
+    .slice(0, 5);
+
   return {
     passage: data.passage || input.passage,
     translation: data.translation || input.translation,
@@ -91,7 +117,7 @@ export function normalizeGeneratedStudy(value: unknown, input: { passage: string
     eventThreads: data.eventThreads || [],
     entityLinks: data.entityLinks || [],
     themes: data.themes || [],
-    tags: data.tags || [],
+    tags,
     sources: data.sources || ["AI-generated draft"],
     bigIdea: data.bigIdea || "Generated study draft.",
     context: data.context || [],

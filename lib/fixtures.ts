@@ -54,8 +54,12 @@ export const fixture: Study = {
         "Jehoshaphat returns safely to Jerusalem after the battle where Ahab was killed. His safety should be read as mercy, not approval of his alliance. God spared him, but the next verses show that his compromise still needed correction.",
       details: [
         "Context: 2 Chronicles 18:31 shows Jehoshaphat crying out and the Lord helping him in the previous chapter.",
-        "Application: Safety after a bad decision should not be mistaken for God's endorsement."
+        "The phrase returns safely matters because the previous chapter could have ended very differently. Jehoshaphat's life is preserved before his leadership is corrected.",
+        "This keeps mercy and discipline together: God can rescue someone from the consequence that would have destroyed them while still addressing the compromise that endangered them."
       ],
+      crossReferences: [["2 Chronicles 18:31", "shows the Lord rescuing Jehoshaphat in the battle immediately before this return."]],
+      application: ["Safety after a bad decision should not be mistaken for God's endorsement."],
+      reflection: ["Where might I be treating relief as approval instead of an invitation to return?"],
       keep: "Mercy after compromise is not approval; it is an invitation to return."
     },
     {
@@ -63,10 +67,17 @@ export const fixture: Study = {
       note:
         "Jehu confronts Jehoshaphat for helping the wicked and loving those who hate the Lord. The correction is direct, but it is not flattening. Jehu also names what is good in Jehoshaphat: he removed Asherah poles and set his heart to seek God.",
       details: [
-        "Cross reference: Psalm 97:10 supports Jehu's rebuke by connecting love for the Lord with rejecting evil.",
         "Context: Jehu is the son of Hanani, who previously confronted Asa in 2 Chronicles 16:7-9.",
-        "Application: Faithful correction can name what is wrong without erasing what God is still doing."
+        "The rebuke turns on the tension between love and alliance. Jehoshaphat's issue was not merely that he knew Ahab; it was that he gave strength to someone actively resisting the Lord.",
+        "The encouragement in verse 3 matters because God does not reduce Jehoshaphat to his worst decision. The text holds compromise and genuine seeking in the same frame.",
+        "Writer's note: this is a helpful guardrail for application. The passage warns against spiritually compromising partnership, not against showing kindness or witness to difficult people."
       ],
+      crossReferences: [
+        ["Psalm 97:10", "connects love for the Lord with rejecting evil."],
+        ["2 Chronicles 16:7-9", "shows Jehu's father Hanani confronting Asa, placing Jehu's rebuke in a prophetic family line."]
+      ],
+      application: ["Faithful correction can name what is wrong without erasing what God is still doing."],
+      reflection: ["Where do I need correction that tells the truth without collapsing into shame?"],
       keep: "Faithful correction tells the truth about compromise without erasing the evidence of grace."
     },
     {
@@ -75,8 +86,12 @@ export const fixture: Study = {
         "Jehoshaphat does not only feel regret. He moves toward renewed obedience by going among the people and bringing them back to the Lord. The fruit of received correction is movement, not paralysis.",
       details: [
         "Context: This echoes Jehoshaphat's earlier teaching and reform work in 2 Chronicles 17:7-9.",
-        "Application: Conviction is meant to move toward return and repair, not self-protection or self-punishment."
+        "The movement is pastoral as well as political. He does not only fix a private problem; he helps the people return to the Lord.",
+        "The phrase bringing them back suggests restoration, not merely rule enforcement. Jehoshaphat responds to correction by realigning influence."
       ],
+      crossReferences: [["2 Chronicles 17:7-9", "shows Jehoshaphat's earlier pattern of sending leaders to teach the law throughout Judah."]],
+      application: ["Conviction is meant to move toward return and repair, not self-protection or self-punishment."],
+      reflection: ["What would it look like for conviction to produce repair instead of only regret?"],
       keep: "Conviction is meant to move us toward obedience, not trap us in shame."
     },
     {
@@ -84,9 +99,16 @@ export const fixture: Study = {
       note:
         "Jehoshaphat appoints judges throughout Judah and reminds them that they judge for the Lord, not merely for people. This echoes Deuteronomy's concern for justice without partiality or bribery.",
       details: [
-        "Cross reference: Deuteronomy 16:18-20 gives the Torah background for appointing judges and pursuing justice without partiality.",
-        "Application: Spiritual renewal should shape how responsibility, fairness, and authority are handled."
+        "The command to consider what they do slows the judges down before they act. Their decisions are not casual opinions; they are stewardship before God.",
+        "The warning against injustice, partiality, and bribes is not abstract ethics. It protects the vulnerable from leaders who can be bought, pressured, or impressed.",
+        "It's noted that Chronicles often cares about worship and temple life, but this chapter shows renewal reaching the justice system too."
       ],
+      crossReferences: [
+        ["Deuteronomy 16:18-20", "gives the Torah background for appointing judges and pursuing justice without partiality."],
+        ["Deuteronomy 10:17", "describes the Lord as impartial and unable to be bribed, which grounds the judges' posture."]
+      ],
+      application: ["Spiritual renewal should shape how responsibility, fairness, and authority are handled."],
+      reflection: ["Where am I tempted to let preference, pressure, or comfort affect what faithfulness requires?"],
       keep: "When authority is received as stewardship before God, integrity becomes worship."
     },
     {
@@ -94,9 +116,18 @@ export const fixture: Study = {
       note:
         "The Jerusalem court is charged to act in the fear of the Lord, with faithfulness and wholeheartedness. The final call to courage shows that justice requires more than structure; it requires holy fear, clear warning, and confidence in God's presence.",
       details: [
-        "Cross reference: Psalm 82 shows God as the ultimate judge over earthly judges.",
-        "Application: Doing what is right often requires courage because justice is not always convenient, popular, or personally beneficial."
+        "Fear of the Lord is not panic; it is moral seriousness before God. The judges are to handle disputes with the awareness that God sees both the case and the judge.",
+        "Wholeheartedness keeps justice from becoming a cold procedure. The work requires both truth and faithful devotion.",
+        "The closing encouragement, 'May the Lord be with those who do what is good,' connects courage with presence. They are not courageous because outcomes are easy, but because God is with faithful obedience."
       ],
+      crossReferences: [
+        ["Psalm 82", "shows God as the ultimate judge over earthly judges."],
+        ["Micah 6:8", "summarizes the kind of justice, mercy, and humble walking that should mark God's people."]
+      ],
+      application: [
+        "Doing what is right often requires courage because justice is not always convenient, popular, or personally beneficial."
+      ],
+      reflection: ["Where is God asking me to do what is good with courage rather than wait until it feels easy?"],
       keep: "Faithfulness is not only knowing what is right; it is doing what is right with courage before God."
     }
   ],
