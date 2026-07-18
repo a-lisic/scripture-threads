@@ -120,6 +120,26 @@ codex login
 pnpm codex:bridge
 ```
 
+If Terminal cannot find `pnpm`, use the bundled runtime directly:
+
+```bash
+cd "/Users/Elizabeth/Documents/Bible Study"
+/Users/Elizabeth/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm codex:bridge
+```
+
+If the bridge reports that the configured Codex model requires a newer CLI, point the bridge at the Codex binary bundled with the ChatGPT app:
+
+```bash
+cd "/Users/Elizabeth/Documents/Bible Study"
+CODEX_BIN="/Applications/ChatGPT.app/Contents/Resources/codex" /Users/Elizabeth/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm codex:bridge
+```
+
+To temporarily force a different Codex model for the bridge only, add `CODEX_MODEL`:
+
+```bash
+CODEX_BIN="/Applications/ChatGPT.app/Contents/Resources/codex" CODEX_MODEL="gpt-5.5" /Users/Elizabeth/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback/pnpm codex:bridge
+```
+
 The bridge listens on:
 
 ```text

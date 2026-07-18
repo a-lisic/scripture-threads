@@ -5,6 +5,7 @@ import { spawn, spawnSync } from "node:child_process";
 const host = process.env.SCRIPTURE_THREADS_BRIDGE_HOST || "127.0.0.1";
 const port = Number(process.env.SCRIPTURE_THREADS_BRIDGE_PORT || 4517);
 const codexBin = process.env.CODEX_BIN || "codex";
+const codexModel = process.env.CODEX_MODEL || "";
 const timeoutMs = Number(process.env.SCRIPTURE_THREADS_CODEX_TIMEOUT_MS || 180000);
 const defaultOrigins = [
   "https://threads.goodnewsco.church",
@@ -96,7 +97,11 @@ function checkCodex() {
 function runCodex(prompt) {
   return new Promise((resolve, reject) => {
     console.log(`[${new Date().toISOString()}] Starting Codex generation (${prompt.length} chars).`);
-    const child = spawn(codexBin, ["exec", prompt], {
+    const args = ["exec"];
+    if (codexModel) args.push("--model", codexModel);
+    args.push(prompt);
+
+    const child = spawn(codexBin, args, {
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env
     });
@@ -121,7 +126,7 @@ function runCodex(prompt) {
     child.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
-        const message = stderr.trim() || `Codex CLI exited with code ${code}.`;
+        const message = formatCodexError(stderr.trim() || `Codex CLI exited with code ${code}.`);
         console.error(`[${new Date().toISOString()}] Codex failed: ${message}`);
         reject(new Error(message));
         return;
@@ -130,6 +135,18 @@ function runCodex(prompt) {
       resolve(stdout.trim());
     });
   });
+}
+
+function formatCodexError(message) {
+  const newerVersion = message.match(/The '[^']+' model requires a newer version of Codex\.[^"}]*/);
+  if (newerVersion) {
+    return `${newerVersion[0]} Try restarting the bridge with CODEX_BIN="/Applications/ChatGPT.app/Contents/Resources/codex", or set CODEX_MODEL to a model supported by your installed CLI.`;
+  }
+
+  const quota = message.match(/You exceeded your current quota[^"}]*/);
+  if (quota) return quota[0];
+
+  return message.length > 900 ? `${message.slice(0, 900)}...` : message;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -150,6 +167,7 @@ const server = http.createServer(async (req, res) => {
         ok: codex.ok,
         service: "scripture-threads-codex-bridge",
         codexBin,
+        codexModel: codexModel || "Codex default",
         codexAvailable: codex.ok,
         codexVersion: codex.version,
         codexError: codex.error
@@ -184,6 +202,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, host, () => {
   console.log(`Scripture Threads Codex bridge listening at http://${host}:${port}`);
   console.log(`Using Codex binary: ${codexBin}`);
+  console.log(`Using Codex model: ${codexModel || "Codex default"}`);
   const codex = checkCodex();
   console.log(codex.ok ? `Codex check: ${codex.version}` : `Codex check failed: ${codex.error}`);
   console.log("Keep this terminal open while using Codex CLI as the desktop generation path.");
