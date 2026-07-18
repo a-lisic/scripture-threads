@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import http from "node:http";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 
 const host = process.env.SCRIPTURE_THREADS_BRIDGE_HOST || "127.0.0.1";
 const port = Number(process.env.SCRIPTURE_THREADS_BRIDGE_PORT || 4517);
@@ -67,8 +67,35 @@ function extractJson(text) {
   return trimmed;
 }
 
+function checkCodex() {
+  const result = spawnSync(codexBin, ["--version"], {
+    encoding: "utf8",
+    env: process.env
+  });
+
+  if (result.error) {
+    return {
+      ok: false,
+      error: `Cannot run ${codexBin}: ${result.error.message}`
+    };
+  }
+
+  if (result.status !== 0) {
+    return {
+      ok: false,
+      error: result.stderr?.trim() || `${codexBin} --version exited with code ${result.status}.`
+    };
+  }
+
+  return {
+    ok: true,
+    version: result.stdout?.trim() || "Codex CLI found"
+  };
+}
+
 function runCodex(prompt) {
   return new Promise((resolve, reject) => {
+    console.log(`[${new Date().toISOString()}] Starting Codex generation (${prompt.length} chars).`);
     const child = spawn(codexBin, ["exec", prompt], {
       stdio: ["ignore", "pipe", "pipe"],
       env: process.env
@@ -88,14 +115,18 @@ function runCodex(prompt) {
     });
     child.on("error", (error) => {
       clearTimeout(timer);
+      console.error(`[${new Date().toISOString()}] Codex launch failed: ${error.message}`);
       reject(error);
     });
     child.on("close", (code) => {
       clearTimeout(timer);
       if (code !== 0) {
-        reject(new Error(stderr.trim() || `Codex CLI exited with code ${code}.`));
+        const message = stderr.trim() || `Codex CLI exited with code ${code}.`;
+        console.error(`[${new Date().toISOString()}] Codex failed: ${message}`);
+        reject(new Error(message));
         return;
       }
+      console.log(`[${new Date().toISOString()}] Codex generation completed (${stdout.length} chars).`);
       resolve(stdout.trim());
     });
   });
@@ -111,7 +142,20 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && req.url === "/health") {
-    sendJson(res, 200, { ok: true, service: "scripture-threads-codex-bridge" }, origin);
+    const codex = checkCodex();
+    sendJson(
+      res,
+      codex.ok ? 200 : 503,
+      {
+        ok: codex.ok,
+        service: "scripture-threads-codex-bridge",
+        codexBin,
+        codexAvailable: codex.ok,
+        codexVersion: codex.version,
+        codexError: codex.error
+      },
+      origin
+    );
     return;
   }
 
@@ -128,6 +172,7 @@ const server = http.createServer(async (req, res) => {
       const study = JSON.parse(extractJson(output));
       sendJson(res, 200, { study }, origin);
     } catch (error) {
+      console.error(`[${new Date().toISOString()}] Bridge request failed: ${error instanceof Error ? error.message : "Codex bridge failed."}`);
       sendJson(res, 500, { error: error instanceof Error ? error.message : "Codex bridge failed." }, origin);
     }
     return;
@@ -138,5 +183,8 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, host, () => {
   console.log(`Scripture Threads Codex bridge listening at http://${host}:${port}`);
+  console.log(`Using Codex binary: ${codexBin}`);
+  const codex = checkCodex();
+  console.log(codex.ok ? `Codex check: ${codex.version}` : `Codex check failed: ${codex.error}`);
   console.log("Keep this terminal open while using Codex CLI as the desktop generation path.");
 });

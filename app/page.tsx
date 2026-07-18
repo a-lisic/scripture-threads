@@ -372,13 +372,18 @@ export default function Home() {
     setCodexBridgeState("checking");
     try {
       const response = await fetch(`${url}/health`, { method: "GET" });
-      if (!response.ok) throw new Error(`Bridge returned ${response.status}.`);
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data?.codexAvailable === false) {
+        throw new Error(data?.codexError || `Bridge returned ${response.status}.`);
+      }
       setCodexBridgeState("ready");
       if (showMessage) showToast("Codex CLI bridge is reachable.");
       return true;
-    } catch {
+    } catch (error) {
       setCodexBridgeState("unavailable");
-      if (showMessage) showToast("Codex CLI bridge is not reachable on this device.");
+      if (showMessage) {
+        showToast(error instanceof Error ? `Codex bridge unavailable. ${error.message}` : "Codex CLI bridge is not reachable on this device.");
+      }
       return false;
     }
   }
@@ -468,6 +473,9 @@ export default function Home() {
           return;
         } catch (error) {
           lastError = error instanceof Error ? error : new Error("Generation route failed.");
+          if (route === "codex-cli" && !isMobileRuntime()) {
+            throw lastError;
+          }
           if (route === "prompt-handoff") return;
         }
       }
